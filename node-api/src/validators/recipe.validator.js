@@ -1,0 +1,46 @@
+const { body, param } = require('express-validator');
+
+const createRecipeValidator = [
+  body('title').trim().notEmpty().withMessage('Recipe title is required'),
+  body('description').trim().notEmpty().withMessage('Description is required'),
+  body('category').notEmpty().withMessage('Category is required'),
+  body('image').optional().isURL().withMessage('Image must be a valid URL'),
+  body('prepTime').optional().isInt({ min: 0 }).withMessage('Prep time must be a non-negative integer'),
+  body('cookTime').optional().isInt({ min: 0 }).withMessage('Cook time must be a non-negative integer'),
+  body('servings').optional().isInt({ min: 1 }).withMessage('Servings must be at least 1'),
+  body('difficulty').optional().isIn(['Easy', 'Medium', 'Hard']).withMessage('Difficulty must be Easy, Medium, or Hard'),
+  body('tags').optional().isArray().withMessage('Tags must be an array of strings'),
+  body('ingredients').optional().isArray().withMessage('Ingredients must be an array'),
+  body('ingredients.*.item').optional().notEmpty().withMessage('Ingredient item name is required'),
+  body('instructions').optional().isArray().withMessage('Instructions must be an array of strings'),
+  body('nutrition').optional().isObject().withMessage('Nutrition must be an object'),
+  body('isFeatured').optional().isBoolean().withMessage('isFeatured must be a boolean'),
+  body('isPublished').optional().isBoolean().withMessage('isPublished must be a boolean'),
+  body('seoTitle').optional().trim(),
+  body('seoDescription').optional().trim(),
+];
+
+const updateRecipeValidator = [
+  param('id').isMongoId().withMessage('Invalid recipe ID'),
+  body('title').optional().trim().notEmpty().withMessage('Recipe title cannot be empty'),
+  body('description').optional().trim().notEmpty().withMessage('Description cannot be empty'),
+  body('category').optional().notEmpty().withMessage('Category cannot be empty'),
+  body('image').optional().isURL().withMessage('Image must be a valid URL'),
+  body('prepTime').optional().isInt({ min: 0 }).withMessage('Prep time must be a non-negative integer'),
+  body('cookTime').optional().isInt({ min: 0 }).withMessage('Cook time must be a non-negative integer'),
+  body('servings').optional().isInt({ min: 1 }).withMessage('Servings must be at least 1'),
+  body('difficulty').optional().isIn(['Easy', 'Medium', 'Hard']).withMessage('Difficulty must be Easy, Medium, or Hard'),
+  body('tags').optional().isArray().withMessage('Tags must be an array of strings'),
+  body('ingredients').optional().isArray().withMessage('Ingredients must be an array'),
+  body('instructions').optional().isArray().withMessage('Instructions must be an array of strings'),
+  body('nutrition').optional().isObject().withMessage('Nutrition must be an object'),
+  body('isFeatured').optional().isBoolean().withMessage('isFeatured must be a boolean'),
+  body('isPublished').optional().isBoolean().withMessage('isPublished must be a boolean'),
+  body('seoTitle').optional().trim(),
+  body('seoDescription').optional().trim(),
+];
+
+module.exports = {
+  createRecipeValidator,
+  updateRecipeValidator,
+};

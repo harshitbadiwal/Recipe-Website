@@ -1,0 +1,7 @@
+const COMMENT_STATUS = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+};
+
+module.exports = COMMENT_STATUS;
