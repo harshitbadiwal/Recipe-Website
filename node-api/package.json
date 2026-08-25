@@ -4,7 +4,7 @@
   "description": "Production-ready Express REST API for Recipe Website with JWT, Mongoose, Swagger, and Role-Based Authorization",
   "main": "src/server.js",
   "scripts": {
-    "start": "nodemon src/server.js",
+    "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "prod": "node src/server.js",
     "seed": "node src/seed/seeder.js",
