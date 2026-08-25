@@ -1,0 +1,100 @@
+// Paper & Background
+$paper: #ffffff;
+
+// Primary Theme Colors (Indigo Theme)
+$primaryLight: #eef2ff;
+$primaryMain: #6366f1;
+$primaryDark: #4338ca;
+$primary200: #c7d2fe;
+$primary800: #3730a3;
+
+// Secondary Accent Colors (Emerald Accent)
+$secondaryLight: #ecfdf5;
+$secondaryMain: #10b981;
+$secondaryDark: #047857;
+$secondary200: #a7f3d0;
+$secondary800: #065f46;
+
+// Success Colors
+$successLight: #f0fdf4;
+$success200: #bbf7d0;
+$successMain: #22c55e;
+$successDark: #15803d;
+
+// Error Colors
+$errorLight: #fef2f2;
+$errorMain: #ef4444;
+$errorDark: #b91c1c;
+
+// Orange & Warning Colors
+$orangeLight: #fffbeb;
+$orangeMain: #f59e0b;
+$orangeDark: #b45309;
+
+// Warning Colors
+$warningLight: #fffbeb;
+$warningMain: #f59e0b;
+$warningDark: #d97706;
+
+// Grey Colors
+$grey50: #f8fafc;
+$grey100: #f1f5f9;
+$grey200: #e2e8f0;
+$grey300: #cbd5e1;
+$grey500: #64748b;
+$grey600: #475569;
+$grey700: #334155;
+$grey800: #1e293b;
+$grey900: #0f172a;
+
+// Dark Theme Variants
+$darkBackground: #0f172a;
+$darkPaper: #1e293b;
+$darkLevel1: #1e293b;
+$darkLevel2: #334155;
+$darkTextTitle: #f8fafc;
+$darkTextPrimary: #e2e8f0;
+$darkTextSecondary: #94a3b8;
+
+:export {
+  paper: $paper;
+  primaryLight: $primaryLight;
+  primaryMain: $primaryMain;
+  primaryDark: $primaryDark;
+  primary200: $primary200;
+  primary800: $primary800;
+  secondaryLight: $secondaryLight;
+  secondaryMain: $secondaryMain;
+  secondaryDark: $secondaryDark;
+  secondary200: $secondary200;
+  secondary800: $secondary800;
+  successLight: $successLight;
+  success200: $success200;
+  successMain: $successMain;
+  successDark: $successDark;
+  errorLight: $errorLight;
+  errorMain: $errorMain;
+  errorDark: $errorDark;
+  orangeLight: $orangeLight;
+  orangeMain: $orangeMain;
+  orangeDark: $orangeDark;
+  warningLight: $warningLight;
+  warningMain: $warningMain;
+  warningDark: $warningDark;
+  grey50: $grey50;
+  grey100: $grey100;
+  grey200: $grey200;
+  grey300: $grey300;
+  grey500: $grey500;
+  grey600: $grey600;
+  grey700: $grey700;
+  grey800: $grey800;
+  grey900: $grey900;
+  darkBackground: $darkBackground;
+  darkPaper: $darkPaper;
+  darkLevel1: $darkLevel1;
+  darkLevel2: $darkLevel2;
+  darkTextTitle: $darkTextTitle;
+  darkTextPrimary: $darkTextPrimary;
+  darkTextSecondary: $darkTextSecondary;
+}

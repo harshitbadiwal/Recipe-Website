@@ -1,0 +1,142 @@
+.category-page {
+  flex: 1;
+  background: #f9f9f9;
+  padding-bottom: 70px;
+}
+
+.category-hero {
+  background: #fff5f5;
+  border-bottom: 1px solid #ffd7d7;
+  padding: 45px 0;
+  margin-bottom: 30px;
+}
+
+.category-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.category-subtitle {
+  font-size: 15px;
+  color: #666;
+}
+
+.category-recipes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 25px;
+}
+
+.category-recipe-card {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.category-recipe-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
+}
+
+.category-recipe-image-wrapper {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+}
+
+.category-recipe-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.category-recipe-card:hover .category-recipe-image {
+  transform: scale(1.05);
+}
+
+.category-recipe-info {
+  padding: 18px 18px 20px;
+}
+
+.category-recipe-info h3 {
+  font-size: 18px;
+  margin-bottom: 6px;
+  color: #333;
+}
+
+.category-recipe-meta {
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 8px;
+}
+
+.category-recipe-desc {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+}
+
+.category-empty {
+  padding: 60px 0;
+  text-align: center;
+  color: #555;
+}
+
+.category-empty p {
+  margin-bottom: 12px;
+}
+
+.breadcrumb {
+  font-size: 14px;
+  color: #777;
+  margin-bottom: 10px;
+}
+
+.breadcrumb a {
+  color: #d32f2f;
+}
+
+.back-link {
+  display: inline-block;
+  margin-top: 10px;
+  color: #d32f2f;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.back-link:hover {
+  color: #b71c1c;
+}
+
+@media (max-width: 768px) {
+  .category-hero {
+    padding: 35px 0;
+  }
+
+  .category-title {
+    font-size: 26px;
+  }
+
+  .category-recipes-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .category-recipes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .category-title {
+    font-size: 22px;
+  }
+}
