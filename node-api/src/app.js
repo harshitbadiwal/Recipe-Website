@@ -14,22 +14,15 @@ const { apiLimiter } = require('./middlewares/rateLimiter.middleware');
 const app = express();
 
 // Security Headers
-app.use(helmet());
-
-// Cross-Origin Resource Sharing
 app.use(
-  cors({
-    origin: (origin, callback) => {
-      const allowedOrigins = [config.frontendUrl, config.adminUrl, 'http://localhost:3000', 'http://localhost:5173', 'http://localhost:5000'];
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(null, true); // Permissive for local development testing
-      }
-    },
-    credentials: true,
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
   })
 );
+
+// Cross-Origin Resource Sharing (Allow all origins)
+app.use(cors());
 
 // Logging Middleware
 app.use(requestLogger);

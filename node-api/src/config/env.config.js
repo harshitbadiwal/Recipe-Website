@@ -11,6 +11,7 @@ module.exports = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1d',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   adminUrl: process.env.ADMIN_URL || 'http://localhost:5173',
+  apiBaseUrl: process.env.API_BASE_URL || process.env.RENDER_EXTERNAL_URL || 'https://recipe-website-ja3v.onrender.com',
   cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME || 'n9thvoig',
   cloudinaryApiKey: process.env.CLOUDINARY_API_KEY || '344836114775421',
   cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || '8Sr26vc0tKpCb1Vl2-3p71tAP6U',

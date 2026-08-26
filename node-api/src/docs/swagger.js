@@ -16,8 +16,12 @@ const options = {
     },
     servers: [
       {
+        url: `${config.apiBaseUrl.replace(/\/$/, '')}/api/v1`,
+        description: 'Production Server (Render)',
+      },
+      {
         url: `http://localhost:${config.port}/api/v1`,
-        description: 'Development Server (v1)',
+        description: 'Development Server (Localhost)',
       },
     ],
     components: {
