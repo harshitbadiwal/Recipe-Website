@@ -134,6 +134,15 @@ const options = {
             status: { type: 'string', example: 'APPROVED', enum: ['PENDING', 'APPROVED', 'REJECTED'] },
           },
         },
+        Favorite: {
+          type: 'object',
+          properties: {
+            _id: { type: 'string', example: '65d1a2b3c4d5e6f7a8b9c0d6' },
+            user: { type: 'string', example: '65d1a2b3c4d5e6f7a8b9c0d1' },
+            recipe: { $ref: '#/components/schemas/Recipe' },
+            createdAt: { type: 'string', example: '2026-08-26T08:00:00.000Z' },
+          },
+        },
       },
     },
     paths: {
@@ -197,6 +206,140 @@ const options = {
           responses: {
             200: { description: 'User profile retrieved' },
             401: { description: 'Unauthorized' },
+          },
+        },
+      },
+
+      // User Favorites Endpoints (Authenticated)
+      '/users/me/favorites': {
+        get: {
+          tags: ['User Favorites'],
+          summary: 'Get logged-in user favorite recipes list with pagination',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: 'page', in: 'query', schema: { type: 'integer', default: 1 }, description: 'Page number' },
+            { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 }, description: 'Items per page' },
+          ],
+          responses: {
+            200: {
+              description: 'User favorite recipes fetched successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      message: { type: 'string', example: 'User favorites fetched successfully' },
+                      data: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            _id: { type: 'string', example: '6a8e5a3397a56abba6cad9a8', description: 'Favorite document ID' },
+                            recipe_id: { type: 'string', example: '6a8dda43ef0b304f028c5f93', description: 'Recipe ID' },
+                            title: { type: 'string', example: 'Chicken Pav Bhaji' },
+                            slug: { type: 'string', example: 'chicken-pavbhaji' },
+                          },
+                        },
+                      },
+                      meta: {
+                        type: 'object',
+                        properties: {
+                          page: { type: 'integer', example: 1 },
+                          limit: { type: 'integer', example: 20 },
+                          total: { type: 'integer', example: 5 },
+                          totalPages: { type: 'integer', example: 1 },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            401: { description: 'Unauthorized - Invalid or missing JWT token' },
+          },
+        },
+      },
+      '/users/me/favorites/{recipeId}': {
+        post: {
+          tags: ['User Favorites'],
+          summary: 'Add a recipe to logged-in user favorites',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'recipeId',
+              in: 'path',
+              required: true,
+              schema: { type: 'string' },
+              description: 'Recipe ID (MongoDB ObjectId) or Recipe Slug',
+              example: '65d1a2b3c4d5e6f7a8b9c0d2',
+            },
+          ],
+          responses: {
+            201: { description: 'Recipe added to user favorites' },
+            401: { description: 'Unauthorized - Invalid or missing JWT token' },
+            404: { description: 'Recipe not found' },
+            409: { description: 'Recipe is already in your favorites' },
+          },
+        },
+        delete: {
+          tags: ['User Favorites'],
+          summary: 'Remove a recipe from logged-in user favorites',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'recipeId',
+              in: 'path',
+              required: true,
+              schema: { type: 'string' },
+              description: 'Recipe ID (MongoDB ObjectId) or Recipe Slug',
+              example: '65d1a2b3c4d5e6f7a8b9c0d2',
+            },
+          ],
+          responses: {
+            200: { description: 'Recipe removed from favorites' },
+            401: { description: 'Unauthorized - Invalid or missing JWT token' },
+            404: { description: 'Favorite or recipe not found in user list' },
+          },
+        },
+      },
+      '/users/me/favorites/check/{recipeId}': {
+        get: {
+          tags: ['User Favorites'],
+          summary: 'Check if a recipe is in logged-in user favorites',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'recipeId',
+              in: 'path',
+              required: true,
+              schema: { type: 'string' },
+              description: 'Recipe ID (MongoDB ObjectId) or Recipe Slug',
+              example: '65d1a2b3c4d5e6f7a8b9c0d2',
+            },
+          ],
+          responses: {
+            200: {
+              description: 'Favorite status checked',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      message: { type: 'string', example: 'Favorite status checked' },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          isFavorite: { type: 'boolean', example: true },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            401: { description: 'Unauthorized - Invalid or missing JWT token' },
           },
         },
       },

@@ -18,6 +18,11 @@ class FavoriteController {
     const { favorites, meta } = await favoriteService.getUserFavorites(req.user._id, req.query);
     return ApiResponse.success(res, HTTP_STATUS.OK, 'User favorites fetched successfully', favorites, meta);
   });
+
+  checkFavorite = asyncWrapper(async (req, res) => {
+    const isFavorite = await favoriteService.isFavorite(req.user._id, req.params.recipeId);
+    return ApiResponse.success(res, HTTP_STATUS.OK, 'Favorite status checked', { isFavorite });
+  });
 }
 
 module.exports = new FavoriteController();
