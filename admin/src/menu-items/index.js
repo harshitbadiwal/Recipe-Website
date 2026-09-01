@@ -1,9 +1,10 @@
-import dashboard from './dashboard';
+import recipes from './recipes';
+import audience from './audience';
 
 // ==============================|| MENU ITEMS ||============================== //
 
 const menuItems = {
-  items: [dashboard],
+  items: [recipes, audience],
 };
 
 export default menuItems;

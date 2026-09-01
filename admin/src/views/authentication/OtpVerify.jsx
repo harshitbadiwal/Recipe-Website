@@ -44,7 +44,7 @@ const OtpVerify = () => {
         close: true,
       })
     );
-    navigate('/dashboard');
+    navigate('/recipes');
   };
 
   return (

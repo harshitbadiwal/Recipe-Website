@@ -1,6 +1,6 @@
 import { featuredRecipes, categories, articles, heroSlides, videos } from '@/data/dummyData';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://recipe-website-ja3v.onrender.com/api/v1';
 
 export async function fetchFromAPI(endpoint, options = {}) {
   try {

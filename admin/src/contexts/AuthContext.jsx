@@ -1,8 +1,9 @@
-import React, { createContext, useEffect, useReducer } from 'react';
+import React, { createContext } from 'react';
 import PropTypes from 'prop-types';
 import { useDispatch, useSelector } from '../store';
 import { loginAction, logoutAction, updateProfileAction } from '../store/accountReducer';
 import { openSnackbar } from '../store/slices/snackbar';
+import authService from '../services/authService';
 
 export const AuthContext = createContext(null);
 
@@ -11,33 +12,35 @@ export function AuthProvider({ children }) {
   const account = useSelector((state) => state.account);
 
   const login = async (email, password) => {
-    // Simulated authentication API response
-    const mockUser = {
-      id: 'ADMIN-001',
-      email: email || 'admin@foodie-admin.io',
-      name: email?.includes('chef') ? 'Chef Marcus Sterling' : 'Alexandra Vance',
-      role: email?.includes('chef') ? 'Head Chef' : 'Super Admin',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-      title: 'Lead Platform Administrator',
-      phone: '+1 (555) 234-5678',
-      location: 'San Francisco, CA',
-      bio: 'Managing recipes, culinary menus, kitchen workflow, and administrative analytics.',
-    };
-
-    dispatch(loginAction({ user: mockUser, token: 'mock-jwt-token-2026' }));
-    dispatch(
-      openSnackbar({
-        open: true,
-        message: `Welcome back, ${mockUser.name}!`,
-        variant: 'alert',
-        alert: { color: 'success' },
-        close: true,
-      })
-    );
-    return true;
+    try {
+      const data = await authService.login(email, password);
+      dispatch(loginAction({ user: data.user, token: data.token }));
+      dispatch(
+        openSnackbar({
+          open: true,
+          message: `Welcome back, ${data.user?.name || 'Admin'}!`,
+          variant: 'alert',
+          alert: { color: 'success' },
+          close: true,
+        })
+      );
+      return data;
+    } catch (err) {
+      dispatch(
+        openSnackbar({
+          open: true,
+          message: err.message || 'Login failed',
+          variant: 'alert',
+          alert: { color: 'error' },
+          close: true,
+        })
+      );
+      throw err;
+    }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await authService.logout();
     dispatch(logoutAction());
     dispatch(
       openSnackbar({

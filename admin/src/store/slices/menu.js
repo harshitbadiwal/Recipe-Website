@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-  selectedItem: ['dashboard'],
+  selectedItem: ['recipes-all'],
   selectedID: null,
   drawerOpen: true,
   error: null,

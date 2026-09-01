@@ -3,8 +3,6 @@ import React from 'react';
 import { useTheme } from '@mui/material/styles';
 import { Avatar, Box, ButtonBase, Typography } from '@mui/material';
 import { IconMenu2, IconChefHat } from '@tabler/icons-react';
-import SearchSection from './SearchSection';
-import NotificationSection from './NotificationSection';
 import ProfileSection from './ProfileSection';
 
 const Header = ({ handleLeftDrawerToggle }) => {
@@ -70,13 +68,10 @@ const Header = ({ handleLeftDrawerToggle }) => {
         </ButtonBase>
       </Box>
 
-      {/* header search */}
-      <SearchSection />
-      <Box sx={{ flexGrow: 1 }} />
+      {/* spacer */}
       <Box sx={{ flexGrow: 1 }} />
 
-      {/* notification & profile */}
-      <NotificationSection />
+      {/* profile section */}
       <ProfileSection />
     </>
   );

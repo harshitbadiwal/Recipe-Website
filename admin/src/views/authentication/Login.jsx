@@ -16,10 +16,10 @@ import {
   OutlinedInput,
   Stack,
   Typography,
-  Paper,
   Card,
   Avatar,
   Chip,
+  Alert,
 } from '@mui/material';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
@@ -88,8 +88,8 @@ const Login = () => {
 
         <Formik
           initialValues={{
-            email: 'admin@foodie-admin.io',
-            password: 'Password@123',
+            email: 'admin@recipe.com',
+            password: 'admin123',
             submit: null,
           }}
           validationSchema={Yup.object().shape({
@@ -101,16 +101,22 @@ const Login = () => {
               await login(values.email, values.password);
               setStatus({ success: true });
               setSubmitting(false);
-              navigate('/dashboard');
+              navigate('/recipes');
             } catch (err) {
               setStatus({ success: false });
-              setErrors({ submit: err.message });
+              setErrors({ submit: err.message || 'Authentication failed. Please verify your credentials.' });
               setSubmitting(false);
             }
           }}
         >
-          {({ errors, handleBlur, handleChange, handleSubmit, isSubmitting, touched, values }) => (
+          {({ errors, handleBlur, handleChange, handleSubmit, isSubmitting, touched, values, setFieldValue }) => (
             <form noValidate onSubmit={handleSubmit}>
+              {errors.submit && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {errors.submit}
+                </Alert>
+              )}
+
               <FormControl fullWidth error={Boolean(touched.email && errors.email)} sx={{ mb: 2 }}>
                 <InputLabel htmlFor="outlined-adornment-email-login">Email Address</InputLabel>
                 <OutlinedInput
@@ -185,12 +191,6 @@ const Login = () => {
                 </Typography>
               </Stack>
 
-              {errors.submit && (
-                <Box sx={{ mb: 2 }}>
-                  <FormHelperText error>{errors.submit}</FormHelperText>
-                </Box>
-              )}
-
               <Box sx={{ mt: 2 }}>
                 <AnimateButton>
                   <Button
@@ -203,46 +203,46 @@ const Login = () => {
                     color="primary"
                     sx={{ py: 1.5, fontSize: '1rem', fontWeight: 700 }}
                   >
-                    Sign In to Console
+                    {isSubmitting ? 'Signing In...' : 'Sign In to Console'}
                   </Button>
                 </AnimateButton>
               </Box>
+
+              <Divider sx={{ my: 3 }}>
+                <Chip label="QUICK ADMIN ACCOUNTS" size="small" sx={{ fontWeight: 600, fontSize: '0.7rem' }} />
+              </Divider>
+
+              <Grid container spacing={1}>
+                <Grid item xs={6}>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    size="small"
+                    onClick={() => {
+                      setFieldValue('email', 'admin@recipe.com');
+                      setFieldValue('password', 'admin123');
+                    }}
+                  >
+                    Admin User
+                  </Button>
+                </Grid>
+                <Grid item xs={6}>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    size="small"
+                    onClick={() => {
+                      setFieldValue('email', 'admin@foodie-admin.io');
+                      setFieldValue('password', 'Password@123');
+                    }}
+                  >
+                    Demo Admin
+                  </Button>
+                </Grid>
+              </Grid>
             </form>
           )}
         </Formik>
-
-        <Divider sx={{ my: 3 }}>
-          <Chip label="QUICK DEMO ACCOUNTS" size="small" sx={{ fontWeight: 600, fontSize: '0.7rem' }} />
-        </Divider>
-
-        <Grid container spacing={1}>
-          <Grid item xs={6}>
-            <Button
-              fullWidth
-              variant="outlined"
-              size="small"
-              onClick={() => {
-                login('admin@foodie-admin.io', 'pass');
-                navigate('/dashboard');
-              }}
-            >
-              Super Admin
-            </Button>
-          </Grid>
-          <Grid item xs={6}>
-            <Button
-              fullWidth
-              variant="outlined"
-              size="small"
-              onClick={() => {
-                login('marcus.chef@foodie-admin.io', 'pass');
-                navigate('/dashboard');
-              }}
-            >
-              Head Chef
-            </Button>
-          </Grid>
-        </Grid>
       </Card>
     </Box>
   );

@@ -18,7 +18,18 @@ const Sidebar = ({ drawerOpen, drawerToggle, window }) => {
   const container = window !== undefined ? () => window().document.body : undefined;
 
   return (
-    <Box component="nav" sx={{ flexShrink: { md: 0 }, width: matchUpMd ? config.drawerWidth : 'auto' }} aria-label="sidebar">
+    <Box
+      component="nav"
+      sx={{
+        flexShrink: { md: 0 },
+        width: matchUpMd ? (drawerOpen ? config.drawerWidth : 0) : 'auto',
+        transition: theme.transitions.create('width', {
+          easing: theme.transitions.easing.sharp,
+          duration: theme.transitions.duration.leavingScreen,
+        }),
+      }}
+      aria-label="sidebar"
+    >
       <Drawer
         container={container}
         variant={matchUpMd ? 'persistent' : 'temporary'}
@@ -33,6 +44,7 @@ const Sidebar = ({ drawerOpen, drawerToggle, window }) => {
             borderRight: `1px solid ${theme.palette.divider}`,
             top: { xs: 0, md: '88px' },
             height: { xs: '100%', md: 'calc(100vh - 88px)' },
+            boxSizing: 'border-box',
           },
         }}
         ModalProps={{ keepMounted: true }}

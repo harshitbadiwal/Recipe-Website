@@ -12,48 +12,41 @@ import config from '../../config';
 
 // styles
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(({ theme, open }) => ({
-  ...theme.typography.mainContent,
   backgroundColor: theme.palette.mode === 'dark' ? theme.palette.dark.dark : theme.palette.grey[50],
-  width: '100%',
   minHeight: 'calc(100vh - 88px)',
   flexGrow: 1,
+  minWidth: 0,
   padding: '24px',
   marginTop: '88px',
   marginRight: '20px',
-  borderRadius: `${theme.shape.borderRadius || 10}px`,
-  transition: theme.transitions.create('margin', {
+  marginLeft: '20px',
+  marginBottom: '20px',
+  borderRadius: `${theme.shape.borderRadius || 12}px`,
+  boxSizing: 'border-box',
+  overflowX: 'hidden',
+  transition: theme.transitions.create(['margin', 'width'], {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
   }),
   [theme.breakpoints.up('md')]: {
-    marginLeft: -(config.drawerWidth - 20),
-    width: `calc(100% - ${config.drawerWidth}px)`,
+    marginLeft: '20px',
+    marginRight: '20px',
+    width: open ? `calc(100% - ${config.drawerWidth + 40}px)` : 'calc(100% - 40px)',
   },
   [theme.breakpoints.down('md')]: {
-    marginLeft: '20px',
+    marginLeft: '16px',
+    marginRight: '16px',
     padding: '16px',
     marginTop: '80px',
+    width: 'calc(100% - 32px)',
   },
   [theme.breakpoints.down('sm')]: {
     marginLeft: '10px',
     marginRight: '10px',
     padding: '12px',
+    marginTop: '80px',
+    width: 'calc(100% - 20px)',
   },
-  ...(open && {
-    transition: theme.transitions.create('margin', {
-      easing: theme.transitions.easing.easeOut,
-      duration: theme.transitions.duration.enteringScreen,
-    }),
-    marginLeft: 0,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    [theme.breakpoints.down('md')]: {
-      marginLeft: '20px',
-    },
-    [theme.breakpoints.down('sm')]: {
-      marginLeft: '10px',
-    },
-  }),
 }));
 
 const MainLayout = () => {
@@ -71,7 +64,7 @@ const MainLayout = () => {
   }, [matchDownMd]);
 
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', width: '100%', minHeight: '100vh', overflowX: 'hidden' }}>
       <CssBaseline />
       {/* header */}
       <AppBar
@@ -83,6 +76,7 @@ const MainLayout = () => {
           bgcolor: theme.palette.background.paper,
           borderBottom: `1px solid ${theme.palette.divider}`,
           transition: drawerOpen ? theme.transitions.create('width') : 'none',
+          zIndex: theme.zIndex.drawer + 1,
         }}
       >
         <Toolbar sx={{ height: '88px' }}>

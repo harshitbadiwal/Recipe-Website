@@ -3,21 +3,32 @@ const LOGIN = 'LOGIN';
 const LOGOUT = 'LOGOUT';
 const UPDATE_PROFILE = 'UPDATE_PROFILE';
 
+const getInitialToken = () => {
+  try {
+    const token = localStorage.getItem('recipe_admin_token');
+    if (token && token !== 'null' && token !== 'undefined' && !token.startsWith('mock-')) {
+      return token;
+    }
+  } catch (e) {}
+  return null;
+};
+
+const getInitialUser = () => {
+  try {
+    const user = localStorage.getItem('recipe_admin_user');
+    if (user) return JSON.parse(user);
+  } catch (e) {}
+  return null;
+};
+
+const initialToken = getInitialToken();
+const initialUser = getInitialUser();
+
 const initialState = {
-  isLoggedIn: true, // Default to demo logged in for effortless evaluation
+  isLoggedIn: Boolean(initialToken),
   isInitialized: true,
-  user: {
-    id: 'ADMIN-001',
-    email: 'admin@foodie-admin.io',
-    name: 'Alexandra Vance',
-    role: 'Super Admin',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-    title: 'Lead Platform Administrator',
-    phone: '+1 (555) 234-5678',
-    location: 'San Francisco, CA',
-    bio: 'Overseeing master recipes, kitchen analytics, staff management, and system integrations.',
-  },
-  token: 'mock-jwt-auth-token-sample-xyz',
+  user: initialUser,
+  token: initialToken,
 };
 
 const accountReducer = (state = initialState, action) => {
@@ -29,7 +40,7 @@ const accountReducer = (state = initialState, action) => {
         isLoggedIn: true,
         isInitialized: true,
         user,
-        token: token || 'mock-jwt-auth-token-sample-xyz',
+        token,
       };
     }
     case LOGOUT: {

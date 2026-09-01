@@ -2,3 +2,6 @@
 /admin/node_modules
 /admin/dist
 /front/.next
+/node-api/node_modules
+/node-api/dist
+/node-api/.env
