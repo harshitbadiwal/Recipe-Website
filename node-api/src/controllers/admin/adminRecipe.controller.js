@@ -6,12 +6,12 @@ const HTTP_STATUS = require('../../constants/httpStatusCodes');
 
 const parseJsonFields = (data) => {
   const result = { ...data };
-  ['ingredients', 'instructions', 'nutrition', 'tags'].forEach((field) => {
+  ['ingredients', 'instructions', 'nutrition', 'tags', 'categories'].forEach((field) => {
     if (typeof result[field] === 'string' && result[field].trim() !== '') {
       try {
         result[field] = JSON.parse(result[field]);
       } catch (e) {
-        if (field === 'tags') {
+        if (field === 'tags' || field === 'categories') {
           result[field] = result[field].split(',').map((t) => t.trim()).filter(Boolean);
         }
       }
@@ -37,7 +37,7 @@ class AdminRecipeController {
   });
 
   getRecipeById = asyncWrapper(async (req, res) => {
-    const recipe = await recipeService.getRecipeBySlugOrId(req.params.id);
+    const recipe = await recipeService.getRecipeBySlugOrId(req.params.id, false);
     return ApiResponse.success(res, HTTP_STATUS.OK, 'Recipe details fetched for admin', recipe);
   });
 

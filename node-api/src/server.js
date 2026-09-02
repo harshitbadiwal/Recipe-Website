@@ -4,6 +4,7 @@ const { connectDB, disconnectDB } = require('./config/db.config');
 const logger = require('./utils/logger');
 const User = require('./models/User.model');
 const seedDB = require('./seed/seeder');
+const { initScheduledRecipeCron } = require('./services/cron.service');
 
 let server;
 
@@ -17,6 +18,9 @@ const startServer = async () => {
       logger.info('Database empty. Running initial auto-seeding...');
       await seedDB();
     }
+
+    // Initialize 5-minute scheduled recipe publisher cron job
+    initScheduledRecipeCron();
 
     server = app.listen(config.port, () => {
       logger.info(`🚀 Server running in ${config.env} mode on http://localhost:${config.port}`);

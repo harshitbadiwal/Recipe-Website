@@ -7,11 +7,17 @@ class RecipeRepository {
   }
 
   async findBySlug(slug) {
-    return await Recipe.findOne({ slug: slug.toLowerCase() }).populate('category', 'name slug image').exec();
+    return await Recipe.findOne({ slug: slug.toLowerCase() })
+      .populate('category', 'name slug image')
+      .populate('categories', 'name slug image')
+      .exec();
   }
 
   async findById(id) {
-    return await Recipe.findById(id).populate('category', 'name slug image').exec();
+    return await Recipe.findById(id)
+      .populate('category', 'name slug image')
+      .populate('categories', 'name slug image')
+      .exec();
   }
 
   async findAll(filter = {}, options = {}) {
@@ -21,6 +27,7 @@ class RecipeRepository {
     const [recipes, total] = await Promise.all([
       Recipe.find(filter)
         .populate('category', 'name slug image')
+        .populate('categories', 'name slug image')
         .sort(sort)
         .skip(skip)
         .limit(limit)
@@ -52,6 +59,15 @@ class RecipeRepository {
           preserveNullAndEmptyArrays: true,
         },
       },
+      // Join Categories
+      {
+        $lookup: {
+          from: 'categories',
+          localField: 'categories',
+          foreignField: '_id',
+          as: 'categories',
+        },
+      },
       // Join Comments Count
       {
         $lookup: {
@@ -77,44 +93,51 @@ class RecipeRepository {
     return await aggregatePaginate(Recipe, pipeline, { ...options, sort });
   }
 
-  async findFeatured(limit = 8) {
-    return await Recipe.find({ isFeatured: true, isPublished: true })
+  async findFeatured(filter = {}, limit = 8) {
+    return await Recipe.find({ isFeatured: true, ...filter })
       .populate('category', 'name slug image')
+      .populate('categories', 'name slug image')
       .sort({ createdAt: -1 })
       .limit(limit)
       .exec();
   }
 
-  async findLatest(limit = 8) {
-    return await Recipe.find({ isPublished: true })
+  async findLatest(filter = {}, limit = 8) {
+    return await Recipe.find({ ...filter })
       .populate('category', 'name slug image')
+      .populate('categories', 'name slug image')
       .sort({ createdAt: -1 })
       .limit(limit)
       .exec();
   }
 
-  async findRelated(recipe, limit = 4) {
+  async findRelated(recipe, extraFilter = {}, limit = 4) {
     return await Recipe.find({
       _id: { $ne: recipe._id },
-      isPublished: true,
+      ...extraFilter,
       $or: [
+        { categories: { $in: recipe.categories && recipe.categories.length ? recipe.categories : [recipe.category] } },
         { category: recipe.category },
         { difficulty: recipe.difficulty },
         { tags: { $in: recipe.tags || [] } },
       ],
     })
       .populate('category', 'name slug image')
+      .populate('categories', 'name slug image')
       .limit(limit)
       .exec();
   }
 
   async countByCategory(categoryId) {
-    return await Recipe.countDocuments({ category: categoryId });
+    return await Recipe.countDocuments({
+      $or: [{ category: categoryId }, { categories: categoryId }],
+    });
   }
 
   async updateById(id, updateData) {
     return await Recipe.findByIdAndUpdate(id, updateData, { new: true, runValidators: true })
       .populate('category', 'name slug image')
+      .populate('categories', 'name slug image')
       .exec();
   }
 

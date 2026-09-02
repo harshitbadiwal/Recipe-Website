@@ -411,16 +411,34 @@ const RecipeList = () => {
 
                       {/* Category */}
                       <TableCell>
-                        <Chip
-                          size="small"
-                          label={catName}
-                          sx={{
-                            bgcolor: catStyle.bg,
-                            color: catStyle.text,
-                            fontWeight: 700,
-                            fontSize: '0.75rem',
-                          }}
-                        />
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {(() => {
+                            let catList = [];
+                            if (Array.isArray(recipe.categories) && recipe.categories.length > 0) {
+                              catList = recipe.categories.map((c) => (typeof c === 'object' && c !== null ? c.name : c));
+                            } else if (Array.isArray(recipe.categoryNames) && recipe.categoryNames.length > 0) {
+                              catList = recipe.categoryNames;
+                            } else {
+                              catList = [getCategoryName(recipe.category, recipe.categoryName)];
+                            }
+                            return catList.map((cName, idx) => {
+                              const catStyle = getCategoryColor(cName);
+                              return (
+                                <Chip
+                                  key={idx}
+                                  size="small"
+                                  label={cName}
+                                  sx={{
+                                    bgcolor: catStyle.bg,
+                                    color: catStyle.text,
+                                    fontWeight: 700,
+                                    fontSize: '0.75rem',
+                                  }}
+                                />
+                              );
+                            });
+                          })()}
+                        </Box>
                       </TableCell>
 
                       {/* Difficulty */}
@@ -452,14 +470,27 @@ const RecipeList = () => {
                         </Stack>
                       </TableCell>
 
-                      {/* Published status */}
+                      {/* Published / Scheduled status */}
                       <TableCell>
-                        <Chip
-                          size="small"
-                          label={recipe.isPublished !== false ? 'Published' : 'Draft'}
-                          color={recipe.isPublished !== false ? 'success' : 'default'}
-                          sx={{ fontWeight: 700, fontSize: '0.72rem' }}
-                        />
+                        {recipe.isScheduled ? (
+                          <Tooltip title={`Scheduled for ${recipe.scheduledDate} ${recipe.scheduledTime}`}>
+                            <Chip
+                              size="small"
+                              icon={<IconClock size="12px" />}
+                              label={`Scheduled ${recipe.scheduledDate ? `(${recipe.scheduledDate})` : ''}`}
+                              color="info"
+                              variant="outlined"
+                              sx={{ fontWeight: 700, fontSize: '0.72rem' }}
+                            />
+                          </Tooltip>
+                        ) : (
+                          <Chip
+                            size="small"
+                            label={recipe.isPublished !== false ? 'Published' : 'Draft'}
+                            color={recipe.isPublished !== false ? 'success' : 'default'}
+                            sx={{ fontWeight: 700, fontSize: '0.72rem' }}
+                          />
+                        )}
                       </TableCell>
 
                       {/* Action buttons */}

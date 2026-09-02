@@ -66,11 +66,16 @@ const RecipeForm = () => {
   const [slug, setSlug] = useState('');
   const [isSlugManual, setIsSlugManual] = useState(false);
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState([]);
   const [prepTime, setPrepTime] = useState(20);
   const [cookTime, setCookTime] = useState(40);
   const [servings, setServings] = useState(4);
   const [difficulty, setDifficulty] = useState('Medium');
+
+  // Scheduled Posting State
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('12:00');
 
   // Media
   const [imageUrl, setImageUrl] = useState('');
@@ -115,9 +120,6 @@ const RecipeForm = () => {
       try {
         const cats = await categoryService.getCategories();
         setCategories(cats || []);
-        if (!category && cats && cats.length > 0) {
-          setCategory(cats[0].name);
-        }
 
         if (isEditMode) {
           setLoading(true);
@@ -126,11 +128,18 @@ const RecipeForm = () => {
             setTitle(data.title || '');
             setSlug(data.slug || '');
             setIsSlugManual(true);
-            const initialCatName =
-              typeof data.category === 'object' && data.category !== null
-                ? data.category.name || data.category.slug || 'Non-Veg'
-                : data.category || data.categoryName || 'Non-Veg';
-            setCategory(initialCatName);
+            
+            let catNames = [];
+            if (Array.isArray(data.categories) && data.categories.length > 0) {
+              catNames = data.categories.map((c) => (typeof c === 'object' && c !== null ? c.name : c));
+            } else if (Array.isArray(data.categoryNames) && data.categoryNames.length > 0) {
+              catNames = data.categoryNames;
+            } else if (data.category) {
+              const catName = typeof data.category === 'object' && data.category !== null ? data.category.name : data.category;
+              catNames = [catName || data.categoryName || 'Non-Veg'];
+            }
+            setSelectedCategories(catNames);
+
             setPrepTime(data.prepTime || 20);
             setCookTime(data.cookTime || 40);
             setServings(data.servings || 4);
@@ -158,9 +167,14 @@ const RecipeForm = () => {
             );
             setIsFeatured(Boolean(data.isFeatured));
             setIsPublished(data.isPublished !== false);
+            setIsScheduled(Boolean(data.isScheduled));
+            setScheduledDate(data.scheduledDate || '');
+            setScheduledTime(data.scheduledTime || '12:00');
             setSeoTitle(data.seoTitle || '');
             setSeoDescription(data.seoDescription || '');
           }
+        } else if (cats && cats.length > 0 && selectedCategories.length === 0) {
+          setSelectedCategories([cats[0].name]);
         }
       } catch (err) {
         setErrorMsg(err.message || 'Failed to fetch recipe details');
@@ -245,8 +259,12 @@ const RecipeForm = () => {
       setErrorMsg('Recipe description is required.');
       return;
     }
-    if (!category.trim()) {
-      setErrorMsg('Category is required.');
+    if (selectedCategories.length === 0) {
+      setErrorMsg('At least one category is required.');
+      return;
+    }
+    if (isScheduled && !scheduledDate) {
+      setErrorMsg('Please select a scheduled publish date.');
       return;
     }
 
@@ -256,12 +274,16 @@ const RecipeForm = () => {
     const cleanIngredients = ingredients.filter((ing) => ing.item && ing.item.trim() !== '');
     const cleanInstructions = instructions.filter((inst) => inst && inst.trim() !== '');
 
+    const primaryCategory = selectedCategories[0] || '';
+
     const recipePayload = {
       title: title.trim(),
       slug: slug.trim() || slugify(title),
       description: description.trim(),
-      category: category.trim(),
-      categoryName: category.trim(),
+      category: primaryCategory,
+      categoryName: primaryCategory,
+      categories: selectedCategories,
+      categoryNames: selectedCategories,
       image: imageUrl.trim(),
       prepTime: Number(prepTime) || 0,
       cookTime: Number(cookTime) || 0,
@@ -273,6 +295,11 @@ const RecipeForm = () => {
       nutrition,
       isFeatured,
       isPublished,
+      isScheduled,
+      is_scheduled: isScheduled,
+      is_posting: isScheduled,
+      scheduledDate,
+      scheduledTime,
       seoTitle: seoTitle.trim() || title.trim(),
       seoDescription: seoDescription.trim() || description.trim(),
     };
@@ -411,12 +438,23 @@ const RecipeForm = () => {
 
                   <Grid item xs={12} sm={6}>
                     <FormControl fullWidth required>
-                      <InputLabel id="category-select-label">Category *</InputLabel>
+                      <InputLabel id="category-select-label">Categories (Select Multiple) *</InputLabel>
                       <Select
                         labelId="category-select-label"
-                        value={category}
-                        label="Category *"
-                        onChange={(e) => setCategory(e.target.value)}
+                        multiple
+                        value={selectedCategories}
+                        label="Categories (Select Multiple) *"
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSelectedCategories(typeof val === 'string' ? val.split(',') : val);
+                        }}
+                        renderValue={(selected) => (
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                            {selected.map((val) => (
+                              <Chip key={val} label={val} size="small" color="primary" variant="outlined" />
+                            ))}
+                          </Box>
+                        )}
                       >
                         {categories.map((cat) => (
                           <MenuItem key={cat._id || cat.name} value={cat.name}>
@@ -844,6 +882,57 @@ const RecipeForm = () => {
                       </Box>
                     }
                   />
+                  <Divider />
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={isScheduled}
+                        onChange={(e) => setIsScheduled(e.target.checked)}
+                        color="info"
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          Schedule Posting
+                        </Typography>
+                        <Typography variant="caption" color="textSecondary">
+                          {isScheduled ? 'Recipe will publish automatically at scheduled date & time' : 'Post immediately upon saving'}
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                  {isScheduled && (
+                    <Box sx={{ p: 2, bgcolor: '#f0f9ff', borderRadius: '12px', border: '1px solid #bae6fd' }}>
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#0369a1', display: 'block', mb: 1.5 }}>
+                        📅 Scheduled Date & Time
+                      </Typography>
+                      <Grid container spacing={1.5}>
+                        <Grid item xs={12} sm={7}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            type="date"
+                            label="Publish Date *"
+                            value={scheduledDate}
+                            onChange={(e) => setScheduledDate(e.target.value)}
+                            InputLabelProps={{ shrink: true }}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={5}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            type="time"
+                            label="Publish Time *"
+                            value={scheduledTime}
+                            onChange={(e) => setScheduledTime(e.target.value)}
+                            InputLabelProps={{ shrink: true }}
+                          />
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  )}
                   <Divider />
                   <FormControlLabel
                     control={

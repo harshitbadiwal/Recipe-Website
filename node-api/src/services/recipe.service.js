@@ -6,6 +6,117 @@ const ROLES = require('../constants/roles');
 const mongoose = require('mongoose');
 
 class RecipeService {
+  _getPublicVisibilityFilter() {
+    const now = new Date();
+    return {
+      isPublished: true,
+      $or: [
+        { isScheduled: false },
+        { isScheduled: { $exists: false } },
+        { isScheduled: null },
+        { scheduledAt: { $lte: now } },
+      ],
+    };
+  }
+
+  async _resolveCategories(recipeData) {
+    let rawCategories = recipeData.categories !== undefined ? recipeData.categories : recipeData.category;
+    if (typeof rawCategories === 'string') {
+      try {
+        const parsed = JSON.parse(rawCategories);
+        if (Array.isArray(parsed)) rawCategories = parsed;
+      } catch (e) {
+        if (rawCategories.includes(',')) {
+          rawCategories = rawCategories.split(',').map((s) => s.trim()).filter(Boolean);
+        } else {
+          rawCategories = [rawCategories.trim()];
+        }
+      }
+    }
+    if (!Array.isArray(rawCategories)) {
+      rawCategories = rawCategories ? [rawCategories] : [];
+    }
+    rawCategories = rawCategories.filter(Boolean);
+
+    const categoriesArr = [];
+    const categoryNamesArr = [];
+
+    for (const item of rawCategories) {
+      let catObj = null;
+      if (typeof item === 'object' && item !== null && item._id) {
+        catObj = item;
+      } else if (mongoose.Types.ObjectId.isValid(item)) {
+        catObj = await categoryRepository.findById(item);
+      } else if (typeof item === 'string') {
+        catObj = await categoryRepository.findBySlug(item);
+        if (!catObj) {
+          const allCats = await categoryRepository.findAll({}, { limit: 100 });
+          catObj = allCats.categories.find(
+            (c) => c.name.toLowerCase() === item.toLowerCase() || c.slug.toLowerCase() === item.toLowerCase()
+          );
+        }
+      }
+      if (catObj) {
+        if (!categoriesArr.some((id) => id.toString() === catObj._id.toString())) {
+          categoriesArr.push(catObj._id);
+          categoryNamesArr.push(catObj.name);
+        }
+      }
+    }
+
+    if (categoriesArr.length === 0) {
+      const fallback = await categoryRepository.findAll({}, { limit: 1 });
+      if (fallback.categories && fallback.categories.length > 0) {
+        const catObj = fallback.categories[0];
+        categoriesArr.push(catObj._id);
+        categoryNamesArr.push(catObj.name);
+      }
+    }
+
+    return {
+      categories: categoriesArr,
+      categoryNames: categoryNamesArr,
+      category: categoriesArr[0] || null,
+      categoryName: categoryNamesArr[0] || '',
+    };
+  }
+
+  _resolveScheduling(recipeData, existingRecipe = null) {
+    const isScheduledRaw = recipeData.isScheduled ?? recipeData.is_scheduled ?? recipeData.is_posting ?? (existingRecipe ? existingRecipe.isScheduled : false);
+    const isScheduled = isScheduledRaw === true || isScheduledRaw === 'true' || isScheduledRaw === 1 || isScheduledRaw === '1';
+
+    let scheduledDate = recipeData.scheduledDate ?? recipeData.scheduled_date ?? (existingRecipe ? existingRecipe.scheduledDate : '') ?? '';
+    let scheduledTime = recipeData.scheduledTime ?? recipeData.scheduled_time ?? (existingRecipe ? existingRecipe.scheduledTime : '') ?? '';
+    let scheduledAt = null;
+    let isPublished = recipeData.isPublished !== undefined ? Boolean(recipeData.isPublished) : (existingRecipe ? existingRecipe.isPublished : true);
+
+    if (isScheduled && scheduledDate) {
+      const timeStr = scheduledTime || '00:00';
+      scheduledAt = new Date(`${scheduledDate}T${timeStr}:00`);
+      if (isNaN(scheduledAt.getTime())) {
+        scheduledAt = new Date(scheduledDate);
+      }
+
+      if (scheduledAt && scheduledAt > new Date()) {
+        isPublished = false;
+      } else {
+        isPublished = true;
+      }
+    } else {
+      scheduledDate = '';
+      scheduledTime = '';
+      scheduledAt = null;
+    }
+
+    return {
+      isScheduled: Boolean(isScheduled && scheduledAt && scheduledAt > new Date()),
+      scheduledDate,
+      scheduledTime,
+      scheduledAt,
+      isPublished,
+    };
+  }
+
   async getRecipes(queryParams = {}) {
     const {
       q,
@@ -23,7 +134,7 @@ class RecipeService {
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
 
-    const filter = { isPublished: true };
+    const filter = { ...this._getPublicVisibilityFilter() };
 
     if (q) {
       filter.$or = [
@@ -31,19 +142,29 @@ class RecipeService {
         { description: { $regex: q, $options: 'i' } },
         { tags: { $regex: q, $options: 'i' } },
         { categoryName: { $regex: q, $options: 'i' } },
+        { categoryNames: { $regex: q, $options: 'i' } },
       ];
     }
 
     if (category) {
+      const catOrArray = [];
       if (mongoose.Types.ObjectId.isValid(category)) {
-        filter.category = category;
+        catOrArray.push({ category: category }, { categories: category });
       } else {
         const catObj = await categoryRepository.findBySlug(category);
         if (catObj) {
-          filter.category = catObj._id;
-        } else {
-          filter.categoryName = { $regex: `^${category}$`, $options: 'i' };
+          catOrArray.push({ category: catObj._id }, { categories: catObj._id });
         }
+        catOrArray.push(
+          { categoryName: { $regex: `^${category}$`, $options: 'i' } },
+          { categoryNames: { $regex: `^${category}$`, $options: 'i' } }
+        );
+      }
+      if (filter.$or) {
+        filter.$and = [{ $or: filter.$or }, { $or: catOrArray }];
+        delete filter.$or;
+      } else {
+        filter.$or = catOrArray;
       }
     }
 
@@ -111,7 +232,7 @@ class RecipeService {
     };
   }
 
-  async getRecipeBySlugOrId(slugOrId) {
+  async getRecipeBySlugOrId(slugOrId, isPublicRequest = true) {
     let recipe = null;
     if (mongoose.Types.ObjectId.isValid(slugOrId)) {
       recipe = await recipeRepository.findById(slugOrId);
@@ -122,20 +243,31 @@ class RecipeService {
     if (!recipe) {
       throw new NotFoundError('Recipe not found');
     }
+
+    if (isPublicRequest) {
+      const now = new Date();
+      if (!recipe.isPublished) {
+        throw new NotFoundError('Recipe not found');
+      }
+      if (recipe.isScheduled && recipe.scheduledAt && recipe.scheduledAt > now) {
+        throw new NotFoundError('Recipe not found');
+      }
+    }
+
     return recipe;
   }
 
   async getFeaturedRecipes(limit = 8) {
-    return await recipeRepository.findFeatured(limit);
+    return await recipeRepository.findFeatured(this._getPublicVisibilityFilter(), limit);
   }
 
   async getLatestRecipes(limit = 8) {
-    return await recipeRepository.findLatest(limit);
+    return await recipeRepository.findLatest(this._getPublicVisibilityFilter(), limit);
   }
 
   async getRelatedRecipes(recipeIdOrSlug, limit = 4) {
-    const recipe = await this.getRecipeBySlugOrId(recipeIdOrSlug);
-    return await recipeRepository.findRelated(recipe, limit);
+    const recipe = await this.getRecipeBySlugOrId(recipeIdOrSlug, true);
+    return await recipeRepository.findRelated(recipe, this._getPublicVisibilityFilter(), limit);
   }
 
   // CREATE
@@ -147,27 +279,16 @@ class RecipeService {
       slug = `${slug}-${Date.now().toString().slice(-4)}`;
     }
 
-    let categoryObj = null;
-    if (recipeData.category) {
-      if (mongoose.Types.ObjectId.isValid(recipeData.category)) {
-        categoryObj = await categoryRepository.findById(recipeData.category);
-      } else {
-        categoryObj = await categoryRepository.findBySlug(recipeData.category);
-      }
-    }
-
-    if (!categoryObj) {
-      const categories = await categoryRepository.findAll({}, { limit: 1 });
-      categoryObj = categories.categories[0];
-    }
+    const catData = await this._resolveCategories(recipeData);
+    const schedData = this._resolveScheduling(recipeData);
 
     const totalTime = (parseInt(recipeData.prepTime) || 15) + (parseInt(recipeData.cookTime) || 30);
 
     const recipeToSave = {
       ...recipeData,
+      ...catData,
+      ...schedData,
       slug,
-      category: categoryObj._id,
-      categoryName: categoryObj.name,
       totalTime,
       author: authorUser ? authorUser._id : null,
       authorName: authorUser ? authorUser.name : 'Chef Master',
@@ -202,19 +323,13 @@ class RecipeService {
       }
     }
 
-    if (recipeData.category) {
-      let categoryObj = null;
-      if (mongoose.Types.ObjectId.isValid(recipeData.category)) {
-        categoryObj = await categoryRepository.findById(recipeData.category);
-      } else {
-        categoryObj = await categoryRepository.findBySlug(recipeData.category);
-      }
-
-      if (categoryObj) {
-        recipeData.category = categoryObj._id;
-        recipeData.categoryName = categoryObj.name;
-      }
+    if (recipeData.category !== undefined || recipeData.categories !== undefined) {
+      const catData = await this._resolveCategories(recipeData);
+      Object.assign(recipeData, catData);
     }
+
+    const schedData = this._resolveScheduling(recipeData, recipe);
+    Object.assign(recipeData, schedData);
 
     if (recipeData.prepTime !== undefined || recipeData.cookTime !== undefined) {
       const prep = recipeData.prepTime !== undefined ? parseInt(recipeData.prepTime) : recipe.prepTime;
@@ -253,6 +368,7 @@ class RecipeService {
         { title: { $regex: q, $options: 'i' } },
         { description: { $regex: q, $options: 'i' } },
         { categoryName: { $regex: q, $options: 'i' } },
+        { categoryNames: { $regex: q, $options: 'i' } },
       ];
     }
     if (category) matchFilter.categoryName = { $regex: `^${category}$`, $options: 'i' };

@@ -31,13 +31,25 @@ const recipeSchema = new mongoose.Schema(
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Category',
-      required: true,
+      required: false,
       index: true,
     },
     categoryName: {
       type: String,
       default: '',
     },
+    categories: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Category',
+        index: true,
+      },
+    ],
+    categoryNames: [
+      {
+        type: String,
+      },
+    ],
     tags: [
       {
         type: String,
@@ -88,6 +100,24 @@ const recipeSchema = new mongoose.Schema(
       default: true,
       index: true,
     },
+    isScheduled: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    scheduledDate: {
+      type: String,
+      default: '',
+    },
+    scheduledTime: {
+      type: String,
+      default: '',
+    },
+    scheduledAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
     ratingAverage: {
       type: Number,
       default: 4.8,
@@ -122,5 +152,6 @@ const recipeSchema = new mongoose.Schema(
 
 recipeSchema.index({ title: 'text', description: 'text', tags: 'text' });
 recipeSchema.index({ createdAt: -1 });
+recipeSchema.index({ isPublished: 1, isScheduled: 1, scheduledAt: 1 });
 
 module.exports = mongoose.model('Recipe', recipeSchema);
