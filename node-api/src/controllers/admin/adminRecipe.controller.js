@@ -24,8 +24,15 @@ class AdminRecipeController {
   createRecipe = asyncWrapper(async (req, res) => {
     let recipeData = parseJsonFields(req.body);
     if (req.file) {
-      const uploadRes = await uploadToCloudinary(req.file.buffer, 'recipes');
-      recipeData.image = uploadRes.url;
+      try {
+        const uploadRes = await uploadToCloudinary(req.file.buffer, 'recipes');
+        recipeData.image = uploadRes.url;
+      } catch (uploadErr) {
+        console.error('Cloudinary upload error:', uploadErr);
+        if (!recipeData.image) {
+          recipeData.image = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&h=400&fit=crop';
+        }
+      }
     }
     const recipe = await recipeService.createRecipe(recipeData, req.user);
     return ApiResponse.success(res, HTTP_STATUS.CREATED, 'Recipe created successfully', recipe);
@@ -44,8 +51,12 @@ class AdminRecipeController {
   updateRecipe = asyncWrapper(async (req, res) => {
     let recipeData = parseJsonFields(req.body);
     if (req.file) {
-      const uploadRes = await uploadToCloudinary(req.file.buffer, 'recipes');
-      recipeData.image = uploadRes.url;
+      try {
+        const uploadRes = await uploadToCloudinary(req.file.buffer, 'recipes');
+        recipeData.image = uploadRes.url;
+      } catch (uploadErr) {
+        console.error('Cloudinary upload error:', uploadErr);
+      }
     }
     const recipe = await recipeService.updateRecipe(req.params.id, recipeData);
     return ApiResponse.success(res, HTTP_STATUS.OK, 'Recipe updated successfully', recipe);

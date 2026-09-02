@@ -39,7 +39,7 @@ const checkAndPublishScheduledRecipes = async () => {
  */
 const initScheduledRecipeCron = () => {
   // Schedule to run every 5 minutes: '*/5 * * * *'
-  cron.schedule('*/5 * * * *', async () => {
+  cron.schedule('* * * * *', async () => {
     await checkAndPublishScheduledRecipes();
   });
   console.log('[Cron Job] Scheduled recipe publisher service initialized (Runs every 5 minutes: */5 * * * *)');

@@ -135,4 +135,31 @@ describe('Recipe API Endpoints', () => {
     expect(updated.isPublished).toBe(true);
     expect(updated.isScheduled).toBe(false);
   });
+
+  test('POST /api/v1/admin/recipes - Should accept multipart/form-data with stringified JSON fields', async () => {
+    const res = await request(app)
+      .post('/api/v1/admin/recipes')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .field('title', 'Chicken Biryani Dum')
+      .field('slug', 'chicken-biryani-dum')
+      .field('description', 'Aromatic layered basmati rice')
+      .field('category', category1._id.toString())
+      .field('prepTime', '20')
+      .field('cookTime', '40')
+      .field('servings', '4')
+      .field('difficulty', 'Medium')
+      .field('tags', JSON.stringify(['Indian', 'Spiced']))
+      .field('ingredients', JSON.stringify([{ item: 'Basmati Rice', qty: '500g', note: 'soaked' }]))
+      .field('instructions', JSON.stringify(['Marinate chicken in yogurt', 'Cook on dum']))
+      .field('nutrition', JSON.stringify({ calories: '550 kcal', protein: '35g' }))
+      .attach('image', Buffer.from('fake image content'), 'test.jpg');
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.title).toBe('Chicken Biryani Dum');
+    expect(res.body.data.tags).toContain('Indian');
+    expect(res.body.data.ingredients.length).toBe(1);
+    expect(res.body.data.instructions.length).toBe(2);
+    expect(res.body.data.nutrition.calories).toBe('550 kcal');
+  });
 });
