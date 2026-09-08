@@ -75,7 +75,7 @@ export default function ContactPage() {
             </p>
             <ul className="contact-info-list">
               <li>
-                <span>Email:</span> support@recipemaster.com
+                <span>Email:</span> <a href="mailto:soniashashank@gmail.com" style={{ color: 'inherit', textDecoration: 'none' }}>soniashashank@gmail.com</a>
               </li>
               <li>
                 <span>Phone:</span> +1 234 567 890

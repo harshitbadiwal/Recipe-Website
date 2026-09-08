@@ -4187,3 +4187,342 @@ img {
 .detail-fav-btn:hover svg {
   transform: scale(1.15);
 }
+
+/* ============================================================
+   14. ABOUT PAGE - SONIA SHARMA STORY
+============================================================ */
+.about-page {
+  flex: 1;
+  background: #fafaf9;
+  padding-bottom: 96px;
+}
+
+.about-hero {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #ffffff;
+  padding: 68px 0 54px;
+  margin-bottom: 48px;
+  position: relative;
+  overflow: hidden;
+}
+
+.about-hero::after {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(225, 29, 72, 0.28) 0%, transparent 70%);
+  filter: blur(40px);
+}
+
+.about-hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(225, 29, 72, 0.2);
+  border: 1px solid rgba(225, 29, 72, 0.4);
+  color: #fda4af;
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.about-hero-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 46px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
+}
+
+.about-hero-subtitle {
+  font-size: 18px;
+  color: #94a3b8;
+  max-width: 680px;
+  line-height: 1.6;
+}
+
+.about-grid-layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 36px;
+  align-items: start;
+}
+
+.about-main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.about-story-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 36px 32px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.05);
+  position: relative;
+}
+
+.about-story-card p {
+  color: #475569;
+  font-size: 15.5px;
+  line-height: 1.8;
+  margin-bottom: 16px;
+}
+
+.about-story-card p:last-child {
+  margin-bottom: 0;
+}
+
+.intro-card {
+  background: linear-gradient(135deg, #fff1f2 0%, #ffffff 100%);
+  border-left: 4px solid var(--primary, #e11d48);
+  padding: 32px 36px;
+}
+
+.quote-mark {
+  font-family: Georgia, serif;
+  font-size: 64px;
+  line-height: 1;
+  color: #fecdd3;
+  display: block;
+  margin-bottom: -16px;
+}
+
+.about-intro-highlight {
+  font-size: 18px !important;
+  font-weight: 500;
+  color: #0f172a !important;
+  line-height: 1.7 !important;
+}
+
+.story-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.story-card-icon {
+  font-size: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #fff1f2;
+}
+
+.story-card-header h2 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.connect-card {
+  border: 2px solid #fecdd3;
+  background: linear-gradient(180deg, #ffffff 0%, #fffbfa 100%);
+}
+
+.invite-lead {
+  font-size: 17px !important;
+  font-weight: 600;
+  color: #0f172a !important;
+  margin-bottom: 20px !important;
+}
+
+.feedback-questions-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.question-bubble {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tell-me-callout {
+  font-size: 20px !important;
+  color: var(--primary, #e11d48) !important;
+  font-weight: 800;
+  margin: 16px 0 !important;
+}
+
+.email-cta-box {
+  margin-top: 16px;
+}
+
+.email-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, var(--primary, #e11d48) 0%, #be123c 100%);
+  color: #ffffff;
+  padding: 14px 28px;
+  border-radius: var(--radius-full);
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(225, 29, 72, 0.35);
+  transition: var(--transition-smooth);
+}
+
+.email-link-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(225, 29, 72, 0.5);
+  color: #ffffff;
+}
+
+/* Sidebar Profile Card */
+.about-sidebar {
+  position: sticky;
+  top: 100px;
+}
+
+.about-profile-card {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 36px 28px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.08);
+  text-align: center;
+}
+
+.profile-avatar-container {
+  width: 108px;
+  height: 108px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  padding: 4px;
+  background: linear-gradient(135deg, var(--primary, #e11d48) 0%, #f97316 100%);
+  box-shadow: 0 8px 24px rgba(225, 29, 72, 0.25);
+}
+
+.profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #ffffff;
+}
+
+.profile-name {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.profile-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary, #e11d48);
+  margin-bottom: 24px;
+}
+
+.profile-badges-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+  margin-bottom: 28px;
+  padding: 18px 0;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.profile-badge-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.profile-badge-item .badge-icon {
+  font-size: 20px;
+  margin-top: 2px;
+}
+
+.profile-badge-item strong {
+  display: block;
+  font-size: 13.5px;
+  color: #1e293b;
+  line-height: 1.3;
+}
+
+.profile-badge-item span {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.profile-cta-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.profile-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: var(--transition-smooth);
+}
+
+.profile-action-btn.primary {
+  background: var(--primary, #e11d48);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.3);
+}
+
+.profile-action-btn.primary:hover {
+  background: #be123c;
+  transform: translateY(-2px);
+}
+
+.profile-action-btn.secondary {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+.profile-action-btn.secondary:hover {
+  background: #ffe4e6;
+  border-color: #fecdd3;
+  color: #e11d48;
+}
+
+@media (max-width: 992px) {
+  .about-grid-layout {
+    grid-template-columns: 1fr;
+  }
+  .about-sidebar {
+    position: static;
+  }
+}
