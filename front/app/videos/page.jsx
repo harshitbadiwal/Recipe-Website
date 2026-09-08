@@ -1,22 +1,10 @@
-import VideoSection from '@/components/VideoSection/VideoSection'
+// import VideoSection from '@/components/VideoSection/VideoSection'
+import Link from 'next/link'
 
 export const metadata = {
-  title: 'Video Recipes & Culinary Masterclasses - Step-by-Step Cooking Tutorials',
+  title: 'Video Recipes & Culinary Masterclasses',
   description:
-    'Watch high-definition step-by-step video tutorials for making perfect Biryani, Butter Chicken, Paneer Tikka, and desserts with master chefs.',
-  openGraph: {
-    title: 'Video Cooking Masterclasses - Recipe Master',
-    description:
-      'Watch high-definition step-by-step video tutorials for making authentic dishes.',
-    images: [
-      {
-        url: 'https://images.unsplash.com/photo-1563379091339-03246963d96c?w=1200&h=630&fit=crop',
-        width: 1200,
-        height: 630,
-        alt: 'Cooking Video Masterclasses',
-      },
-    ],
-  },
+    'Watch high-definition step-by-step video tutorials for making authentic dishes.',
 }
 
 export default function VideosPage() {
@@ -24,13 +12,20 @@ export default function VideosPage() {
     <main className="videos-page">
       <div className="videos-hero">
         <div className="container">
-          <h1 className="videos-hero-title">Video Recipes &amp; Masterclasses</h1>
+          <h1 className="videos-hero-title">Cooking Masterclasses &amp; Videos</h1>
           <p className="videos-hero-subtitle">
-            Watch step-by-step cooking tutorials from our master chefs in crisp high definition.
+            Video tutorials and masterclasses are currently being updated. Check back soon!
           </p>
+          <div style={{ marginTop: '24px' }}>
+            <Link href="/recipes" className="view-all-btn" style={{ display: 'inline-flex' }}>
+              Explore Recipes
+            </Link>
+          </div>
         </div>
       </div>
+      {/* Cooking Masterclasses section commented out:
       <VideoSection />
+      */}
     </main>
   )
 }

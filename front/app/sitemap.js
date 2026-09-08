@@ -1,8 +1,8 @@
-import { featuredRecipes, categories, articles, videos } from '@/data/dummyData'
+import { getRecipes, getCategories, getBlogs } from '@/services/api'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://recipemaster.com'
 
-export default function sitemap() {
+export default async function sitemap() {
   const currentDate = new Date().toISOString()
 
   // Base static routes
@@ -20,11 +20,17 @@ export default function sitemap() {
       priority: 0.9,
     },
     {
-      url: `${SITE_URL}/videos`,
+      url: `${SITE_URL}/categories`,
       lastModified: currentDate,
       changeFrequency: 'weekly',
       priority: 0.8,
     },
+    // {
+    //   url: `${SITE_URL}/videos`,
+    //   lastModified: currentDate,
+    //   changeFrequency: 'weekly',
+    //   priority: 0.8,
+    // },
     {
       url: `${SITE_URL}/articles`,
       lastModified: currentDate,
@@ -45,29 +51,47 @@ export default function sitemap() {
     },
   ]
 
-  // Dynamic Recipe pages
-  const recipeRoutes = featuredRecipes.map((recipe) => ({
-    url: `${SITE_URL}/recipes/${recipe.id}`,
-    lastModified: currentDate,
-    changeFrequency: 'weekly',
-    priority: 0.9,
-  }))
+  // Dynamic Recipe pages from API
+  let recipeRoutes = []
+  try {
+    const { recipes } = await getRecipes({ limit: 100 })
+    recipeRoutes = recipes.map((recipe) => ({
+      url: `${SITE_URL}/recipes/${recipe.slug || recipe._id}`,
+      lastModified: recipe.updatedAt || recipe.createdAt || currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    }))
+  } catch (err) {
+    console.warn('Failed to fetch recipes for sitemap:', err.message)
+  }
 
-  // Dynamic Category pages
-  const categoryRoutes = categories.map((category) => ({
-    url: `${SITE_URL}/category/${encodeURIComponent(category.name)}`,
-    lastModified: currentDate,
-    changeFrequency: 'weekly',
-    priority: 0.8,
-  }))
+  // Dynamic Category pages from API
+  let categoryRoutes = []
+  try {
+    const activeCategories = await getCategories()
+    categoryRoutes = activeCategories.map((category) => ({
+      url: `${SITE_URL}/category/${category.slug || category.name}`,
+      lastModified: category.updatedAt || category.createdAt || currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    }))
+  } catch (err) {
+    console.warn('Failed to fetch categories for sitemap:', err.message)
+  }
 
-  // Dynamic Article pages
-  const articleRoutes = articles.map((article) => ({
-    url: `${SITE_URL}/articles/${article.id}`,
-    lastModified: currentDate,
-    changeFrequency: 'monthly',
-    priority: 0.7,
-  }))
+  // Dynamic Article pages from API
+  let articleRoutes = []
+  try {
+    const blogs = await getBlogs()
+    articleRoutes = blogs.map((article) => ({
+      url: `${SITE_URL}/articles/${article.slug || article._id}`,
+      lastModified: article.updatedAt || article.publishedAt || currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    }))
+  } catch (err) {
+    console.warn('Failed to fetch blogs for sitemap:', err.message)
+  }
 
   return [...staticRoutes, ...recipeRoutes, ...categoryRoutes, ...articleRoutes]
 }

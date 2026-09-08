@@ -74,6 +74,7 @@ const CategoryList = () => {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [isActive, setIsActive] = useState(true);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   // Delete State
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -114,6 +115,7 @@ const CategoryList = () => {
     setImageFile(null);
     setImagePreview('');
     setIsActive(true);
+    setFieldErrors({});
     setFormOpen(true);
   };
 
@@ -127,6 +129,7 @@ const CategoryList = () => {
     setImagePreview(cat.image || '');
     setImageFile(null);
     setIsActive(cat.isActive !== false);
+    setFieldErrors({});
     setFormOpen(true);
   };
 
@@ -135,6 +138,13 @@ const CategoryList = () => {
     setName(val);
     if (!isSlugManual) {
       setSlug(slugify(val));
+    }
+    if (fieldErrors.name) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.name;
+        return next;
+      });
     }
   };
 
@@ -149,17 +159,10 @@ const CategoryList = () => {
   const handleSaveCategory = async (e) => {
     e.preventDefault();
     if (!name.trim()) {
-      dispatch(
-        openSnackbar({
-          open: true,
-          message: 'Category name is required',
-          variant: 'alert',
-          alert: { color: 'error' },
-          close: true,
-        })
-      );
+      setFieldErrors({ name: 'Category name is required.' });
       return;
     }
+    setFieldErrors({});
 
     setSubmitting(true);
     const payload = {
@@ -488,6 +491,8 @@ const CategoryList = () => {
                 placeholder="e.g. Non-Veg, Desserts"
                 value={name}
                 onChange={handleNameChange}
+                error={Boolean(fieldErrors.name)}
+                helperText={fieldErrors.name}
                 required
               />
 

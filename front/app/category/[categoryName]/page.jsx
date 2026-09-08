@@ -1,38 +1,55 @@
 import Link from 'next/link'
-import { featuredRecipes, categories } from '@/data/dummyData'
+import { getCategoryBySlug, getCategoryRecipes } from '@/services/api'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://recipemaster.com'
 
 export async function generateMetadata({ params }) {
   const { categoryName } = await params
   const decodedCategory = decodeURIComponent(categoryName)
-  const categoryInfo = categories.find((c) => c.name.toLowerCase() === decodedCategory.toLowerCase())
+  const category = await getCategoryBySlug(decodedCategory)
 
-  const pageTitle = `${decodedCategory} Recipes - Authentic ${decodedCategory} Dishes`
-  const pageDesc = `Explore our collection of authentic ${decodedCategory} recipes. Step-by-step cooking instructions, ingredient lists, and chef tips.`
+  const displayName = category?.name || decodedCategory
+  const canonicalSlug = category?.slug || encodeURIComponent(categoryName)
+  const canonicalUrl = `${SITE_URL}/category/${canonicalSlug}`
+  const pageTitle = `${displayName} Recipes - Authentic ${displayName} Dishes`
+  const pageDesc =
+    category?.description ||
+    `Explore our authentic collection of ${displayName} recipes. Step-by-step cooking instructions, ingredient lists, and master chef tips.`
   const categoryImage =
-    categoryInfo?.image ||
+    category?.image ||
     'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=1200&h=630&fit=crop'
 
   return {
     title: pageTitle,
     description: pageDesc,
+    keywords: [
+      displayName,
+      `${displayName} recipes`,
+      `how to cook ${displayName}`,
+      'authentic cuisine',
+      'homemade dishes',
+    ],
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
-      title: `${decodedCategory} Recipes - Recipe Master`,
+      title: `${displayName} Recipes - Recipe Master`,
       description: pageDesc,
-      url: `${SITE_URL}/category/${encodeURIComponent(categoryName)}`,
+      url: canonicalUrl,
+      siteName: 'Recipe Master',
+      type: 'website',
       images: [
         {
           url: categoryImage,
           width: 1200,
           height: 630,
-          alt: `${decodedCategory} Recipes`,
+          alt: `${displayName} Culinary Collection`,
         },
       ],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${decodedCategory} Recipes - Recipe Master`,
+      title: `${displayName} Recipes - Recipe Master`,
       description: pageDesc,
       images: [categoryImage],
     },
@@ -43,50 +60,132 @@ export default async function CategoryRecipesPage({ params }) {
   const { categoryName } = await params
   const decodedCategory = decodeURIComponent(categoryName)
 
-  const filteredRecipes = featuredRecipes.filter(
-    (recipe) => recipe.category.toLowerCase() === decodedCategory.toLowerCase()
-  )
+  const { category, recipes } = await getCategoryRecipes(decodedCategory)
+  const displayName = category?.name || decodedCategory
+  const description =
+    category?.description ||
+    `Explore authentic ${displayName} culinary recipes, traditional ingredients, and time-honored cooking techniques.`
+  const categorySlug = category?.slug || encodeURIComponent(categoryName)
+
+  // Structured Data: CollectionPage & BreadcrumbList
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: `${SITE_URL}`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Categories',
+            item: `${SITE_URL}/categories`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: displayName,
+            item: `${SITE_URL}/category/${categorySlug}`,
+          },
+        ],
+      },
+      {
+        '@type': 'CollectionPage',
+        name: `${displayName} Recipes`,
+        description,
+        url: `${SITE_URL}/category/${categorySlug}`,
+        mainEntity: {
+          '@type': 'ItemList',
+          itemListElement: recipes.map((recipe, idx) => ({
+            '@type': 'ListItem',
+            position: idx + 1,
+            name: recipe.title,
+            url: `${SITE_URL}/recipes/${recipe.slug || recipe._id}`,
+            image: recipe.image,
+          })),
+        },
+      },
+    ],
+  }
 
   return (
     <main className="category-page">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+
       <div className="category-hero">
         <div className="container">
           <p className="breadcrumb">
-            <Link href="/">Home</Link> / <Link href="/recipes">Recipes</Link> / <span>{decodedCategory}</span>
+            <Link href="/">Home</Link> <span className="breadcrumb-sep">/</span>{' '}
+            <Link href="/categories">Categories</Link> <span className="breadcrumb-sep">/</span>{' '}
+            <span>{displayName}</span>
           </p>
-          <h1 className="category-title">{decodedCategory} Recipes</h1>
-          <p className="category-subtitle">
-            Showing all featured recipes in the <strong>{decodedCategory}</strong> category.
-          </p>
+          <h1 className="category-title">{displayName} Recipes</h1>
+          <p className="category-subtitle">{description}</p>
         </div>
       </div>
 
       <div className="container">
-        {filteredRecipes.length === 0 ? (
-          <div className="category-empty">
-            <p>No recipes found in this category yet.</p>
+        {recipes.length === 0 ? (
+          <div className="category-empty" style={{ textAlign: 'center', padding: '64px 20px' }}>
+            <span style={{ fontSize: '48px', display: 'block', marginBottom: '16px' }}>🥗</span>
+            <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px' }}>
+              No recipes found in this category yet
+            </h2>
+            <p style={{ color: '#64748b', marginBottom: '24px' }}>
+              We are regularly preparing new chef recipes for {displayName}. Check back soon or explore our full collection!
+            </p>
             <Link href="/recipes" className="back-link">
-              Back to all recipes
+              ← Browse All Recipes
             </Link>
           </div>
         ) : (
           <div className="category-recipes-grid">
-            {filteredRecipes.map((recipe) => (
-              <Link key={recipe.id} href={`/recipes/${recipe.id}`} className="recipe-card-link">
-                <div className="category-recipe-card">
-                  <div className="category-recipe-image-wrapper">
-                    <img src={recipe.image} alt={recipe.title} className="category-recipe-image" loading="lazy" />
+            {recipes.map((recipe) => {
+              const recipeSlug = recipe.slug || recipe._id || recipe.id
+              const cookTime = recipe.totalTime
+                ? `${recipe.totalTime} min`
+                : recipe.time || '45 min'
+              const rating =
+                typeof recipe.ratingAverage === 'number'
+                  ? recipe.ratingAverage.toFixed(1)
+                  : '4.8'
+
+              return (
+                <Link
+                  key={recipe._id || recipe.id || recipe.slug}
+                  href={`/recipes/${recipeSlug}`}
+                  className="recipe-card-link"
+                >
+                  <div className="category-recipe-card">
+                    <div className="category-recipe-image-wrapper">
+                      <img
+                        src={recipe.image}
+                        alt={recipe.title}
+                        className="category-recipe-image"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="category-recipe-info">
+                      <h3>{recipe.title}</h3>
+                      <p className="category-recipe-meta">
+                        {recipe.difficulty || 'Easy'} • {cookTime} • ⭐ {rating}
+                      </p>
+                      <p className="category-recipe-desc">
+                        {recipe.description ? `${recipe.description.slice(0, 85)}...` : ''}
+                      </p>
+                    </div>
                   </div>
-                  <div className="category-recipe-info">
-                    <h3>{recipe.title}</h3>
-                    <p className="category-recipe-meta">
-                      {recipe.difficulty} • {recipe.time}
-                    </p>
-                    <p className="category-recipe-desc">{recipe.description.slice(0, 80)}...</p>
-                  </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              )
+            })}
           </div>
         )}
       </div>

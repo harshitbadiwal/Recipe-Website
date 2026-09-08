@@ -63,14 +63,14 @@ const BlogForm = () => {
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [isSlugManual, setIsSlugManual] = useState(false);
-  const [category, setCategory] = useState('Cooking Tips');
-  const [author, setAuthor] = useState('Chef Master');
+  const [category, setCategory] = useState('');
+  const [author, setAuthor] = useState('');
   const [excerpt, setExcerpt] = useState('');
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
-  const [tags, setTags] = useState(['Culinary', 'Cooking']);
+  const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
   const [isPublished, setIsPublished] = useState(true);
 
@@ -82,6 +82,16 @@ const BlogForm = () => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const clearFieldError = (field) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (isEditMode) {
@@ -93,8 +103,8 @@ const BlogForm = () => {
             setTitle(data.title || '');
             setSlug(data.slug || '');
             setIsSlugManual(true);
-            setCategory(data.category || 'Cooking Tips');
-            setAuthor(data.author || 'Chef Master');
+            setCategory(data.category || '');
+            setAuthor(data.author || '');
             setExcerpt(data.excerpt || '');
             setContent(data.content || '');
             setImageUrl(data.featuredImage || '');
@@ -144,17 +154,27 @@ const BlogForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const newErrors = {};
+
     if (!title.trim()) {
-      setErrorMessage('Article title is required');
-      return;
+      newErrors.title = 'Article title is required.';
+    }
+    if (!category) {
+      newErrors.category = 'Please select a category.';
     }
     if (!content.trim()) {
-      setErrorMessage('Article content cannot be empty');
+      newErrors.content = 'Article body content is required.';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
+      setErrorMessage('Please fill in all required fields marked below.');
       return;
     }
 
     setSubmitting(true);
     setErrorMessage('');
+    setFieldErrors({});
 
     const payload = {
       title: title.trim(),
@@ -266,7 +286,12 @@ const BlogForm = () => {
                   label="Article Title *"
                   placeholder="e.g. 10 Essential Spices for Indian Cooking"
                   value={title}
-                  onChange={handleTitleChange}
+                  onChange={(e) => {
+                    handleTitleChange(e);
+                    clearFieldError('title');
+                  }}
+                  error={Boolean(fieldErrors.title)}
+                  helperText={fieldErrors.title}
                   required
                 />
               </Grid>
@@ -289,10 +314,19 @@ const BlogForm = () => {
                 <TextField
                   select
                   fullWidth
+                  required
                   label="Category *"
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  onChange={(e) => {
+                    setCategory(e.target.value);
+                    clearFieldError('category');
+                  }}
+                  error={Boolean(fieldErrors.category)}
+                  helperText={fieldErrors.category}
                 >
+                  <MenuItem value="">
+                    <em>Select a Category</em>
+                  </MenuItem>
                   {STANDARD_BLOG_CATEGORIES.map((cat) => (
                     <MenuItem key={cat} value={cat}>
                       {cat}
@@ -307,7 +341,7 @@ const BlogForm = () => {
                   label="Author Name"
                   value={author}
                   onChange={(e) => setAuthor(e.target.value)}
-                  placeholder="Chef Master"
+                  placeholder="e.g. Chef Sonia Sharma"
                 />
               </Grid>
 
@@ -408,9 +442,15 @@ const BlogForm = () => {
               fullWidth
               multiline
               rows={12}
+              label="Article Body Content *"
               placeholder="Write the full article content here..."
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={(e) => {
+                setContent(e.target.value);
+                clearFieldError('content');
+              }}
+              error={Boolean(fieldErrors.content)}
+              helperText={fieldErrors.content}
               required
               sx={{
                 '& .MuiInputBase-root': {

@@ -1,6 +1,13 @@
-import { videos } from '@/data/dummyData'
+import { getHomepageData } from '@/services/api'
 
 export default async function VideoSection() {
+  const homeData = await getHomepageData()
+  const videos = homeData?.videos || []
+
+  if (videos.length === 0) {
+    return null
+  }
+
   return (
     <section className="video-section">
       <div className="container">
@@ -8,14 +15,14 @@ export default async function VideoSection() {
           <div>
             <span className="section-eyebrow">🎥 Visual Tutorials</span>
             <h2 className="section-title">Cooking Masterclasses</h2>
-            <p className="section-desc">Watch top chefs walk you through every step in crisp high-definition tutorials.</p>
+            <p className="section-desc">Watch step-by-step masterclasses with authentic culinary techniques.</p>
           </div>
         </div>
 
         <div className="videos-scroll">
           <div className="videos-container">
             {videos.map((video, idx) => (
-              <div key={video.id} className="video-card" style={{ animationDelay: `${idx * 0.08}s` }}>
+              <div key={video.id || idx} className="video-card" style={{ animationDelay: `${idx * 0.08}s` }}>
                 <div className="video-thumbnail-wrapper">
                   <img src={video.thumbnail} alt={video.title} className="video-thumbnail" loading="lazy" />
                   <div className="video-gradient-overlay"></div>
@@ -29,11 +36,11 @@ export default async function VideoSection() {
                     </div>
                   </div>
 
-                  <span className="video-duration-pill">⏱ {video.duration}</span>
+                  {video.duration && <span className="video-duration-pill">⏱ {video.duration}</span>}
                 </div>
                 <div className="video-info">
                   <h3 className="video-title">{video.title}</h3>
-                  <span className="video-author">By Master Culinary Team</span>
+                  <span className="video-author">Sonia Sharma Masterclass</span>
                 </div>
               </div>
             ))}

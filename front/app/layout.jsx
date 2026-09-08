@@ -1,5 +1,6 @@
 import Header from '@/components/Header/Header'
 import Footer from '@/components/Footer/Footer'
+import AppProviders from '@/components/Providers/AppProviders'
 import './globals.css'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://recipemaster.com'
@@ -7,50 +8,50 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://recipemaster.com'
 export const metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'Recipe Master - Authentic Recipes & Culinary Inspiration',
-    template: '%s | Recipe Master',
+    default: 'Sonia Sharma Recipes - Authentic Culinary Inspiration',
+    template: '%s | Sonia Sharma Recipes',
   },
   description:
-    'Your ultimate destination for authentic chef-crafted recipes, step-by-step cooking videos, secret culinary techniques, and food guides.',
+    'Your ultimate destination for authentic chef-crafted recipes, step-by-step cooking videos, and culinary tutorials by Sonia Sharma.',
   keywords: [
+    'Sonia Sharma',
+    'Sonia Sharma recipes',
     'recipes',
     'cooking',
     'Indian cuisine',
-    'chef recipes',
-    'dinner ideas',
     'authentic recipes',
     'quick meals',
     'vegetarian recipes',
     'non-veg dishes',
     'dessert recipes',
   ],
-  authors: [{ name: 'Chef Master & Culinary Team', url: SITE_URL }],
-  creator: 'Recipe Master Team',
-  publisher: 'Recipe Master',
+  authors: [{ name: 'Sonia Sharma', url: SITE_URL }],
+  creator: 'Sonia Sharma',
+  publisher: 'Sonia Sharma',
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: SITE_URL,
-    siteName: 'Recipe Master',
-    title: 'Recipe Master - Authentic Recipes & Culinary Inspiration',
+    siteName: 'Sonia Sharma Recipes',
+    title: 'Sonia Sharma Recipes - Authentic Culinary Inspiration',
     description:
-      'Discover delicious chef-crafted recipes, step-by-step cooking videos, and culinary tutorials.',
+      'Discover delicious chef-crafted recipes, step-by-step cooking videos, and culinary tutorials by Sonia Sharma.',
     images: [
       {
-        url: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200&h=630&fit=crop',
-        width: 1200,
-        height: 630,
-        alt: 'Recipe Master - Delicious Culinary Creations',
+        url: '/logo.png',
+        width: 600,
+        height: 600,
+        alt: 'Sonia Sharma Culinary Logo',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Recipe Master - Authentic Recipes & Culinary Inspiration',
+    title: 'Sonia Sharma Recipes - Authentic Culinary Inspiration',
     description:
-      'Discover delicious chef-crafted recipes, step-by-step cooking videos, and culinary tutorials.',
-    images: ['https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200&h=630&fit=crop'],
-    creator: '@recipemaster',
+      'Discover delicious chef-crafted recipes, step-by-step cooking videos, and culinary tutorials by Sonia Sharma.',
+    images: ['/logo.png'],
+    creator: '@soniasharma',
   },
   robots: {
     index: true,
@@ -64,7 +65,8 @@ export const metadata = {
     },
   },
   icons: {
-    icon: '/favicon.ico',
+    icon: '/logo.png',
+    apple: '/logo.png',
   },
 }
 
@@ -72,11 +74,13 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <div className="app">
-          <Header />
-          {children}
-          <Footer />
-        </div>
+        <AppProviders>
+          <div className="app">
+            <Header />
+            {children}
+            <Footer />
+          </div>
+        </AppProviders>
       </body>
     </html>
   )

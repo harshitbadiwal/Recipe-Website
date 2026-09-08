@@ -23,6 +23,7 @@ import {
   Avatar,
   Tooltip,
   useTheme,
+  FormHelperText,
 } from '@mui/material';
 import {
   IconArrowLeft,
@@ -67,15 +68,15 @@ const RecipeForm = () => {
   const [isSlugManual, setIsSlugManual] = useState(false);
   const [description, setDescription] = useState('');
   const [selectedCategories, setSelectedCategories] = useState([]);
-  const [prepTime, setPrepTime] = useState(20);
-  const [cookTime, setCookTime] = useState(40);
-  const [servings, setServings] = useState(4);
-  const [difficulty, setDifficulty] = useState('Medium');
+  const [prepTime, setPrepTime] = useState('');
+  const [cookTime, setCookTime] = useState('');
+  const [servings, setServings] = useState('');
+  const [difficulty, setDifficulty] = useState('');
 
   // Scheduled Posting State
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledDate, setScheduledDate] = useState('');
-  const [scheduledTime, setScheduledTime] = useState('12:00');
+  const [scheduledTime, setScheduledTime] = useState('');
 
   // Media
   const [imageUrl, setImageUrl] = useState('');
@@ -84,35 +85,43 @@ const RecipeForm = () => {
 
   // Tags
   const [tagInput, setTagInput] = useState('');
-  const [tags, setTags] = useState(['Indian', 'Spiced']);
+  const [tags, setTags] = useState([]);
 
   // Dynamic Ingredients: [{ item, qty, note }]
   const [ingredients, setIngredients] = useState([
-    { item: 'Basmati Rice', qty: '500g', note: 'soaked for 30 mins' },
-    { item: 'Chicken', qty: '750g', note: 'curry cut' },
+    { item: '', qty: '', note: '' },
   ]);
 
   // Dynamic Instructions: [string]
-  const [instructions, setInstructions] = useState([
-    'Marinate chicken in yogurt, ginger-garlic paste, and spices for at least 1 hour.',
-    'Parboil basmati rice until 70% done, then layer with marinated chicken and cook on dum.',
-  ]);
+  const [instructions, setInstructions] = useState(['']);
 
   // Nutrition
   const [nutrition, setNutrition] = useState({
-    calories: '550 kcal',
-    protein: '35g',
-    carbs: '60g',
-    fats: '18g',
+    calories: '',
+    protein: '',
+    carbs: '',
+    fats: '',
   });
 
   // Switches
-  const [isFeatured, setIsFeatured] = useState(true);
+  const [isFeatured, setIsFeatured] = useState(false);
   const [isPublished, setIsPublished] = useState(true);
 
   // SEO
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
+
+  // Validation Field Errors
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const clearFieldError = (field) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
 
   // Load Categories & Recipe (if in edit mode)
   useEffect(() => {
@@ -140,10 +149,10 @@ const RecipeForm = () => {
             }
             setSelectedCategories(catNames);
 
-            setPrepTime(data.prepTime || 20);
-            setCookTime(data.cookTime || 40);
-            setServings(data.servings || 4);
-            setDifficulty(data.difficulty || 'Medium');
+            setPrepTime(data.prepTime !== undefined && data.prepTime !== null ? data.prepTime : '');
+            setCookTime(data.cookTime !== undefined && data.cookTime !== null ? data.cookTime : '');
+            setServings(data.servings !== undefined && data.servings !== null ? data.servings : '');
+            setDifficulty(data.difficulty || '');
             setImageUrl(data.image || '');
             setImagePreview(data.image || '');
             setTags(Array.isArray(data.tags) ? data.tags : []);
@@ -159,22 +168,20 @@ const RecipeForm = () => {
             );
             setNutrition(
               data.nutrition || {
-                calories: '550 kcal',
-                protein: '35g',
-                carbs: '60g',
-                fats: '18g',
+                calories: '',
+                protein: '',
+                carbs: '',
+                fats: '',
               }
             );
             setIsFeatured(Boolean(data.isFeatured));
             setIsPublished(data.isPublished !== false);
             setIsScheduled(Boolean(data.isScheduled));
             setScheduledDate(data.scheduledDate || '');
-            setScheduledTime(data.scheduledTime || '12:00');
+            setScheduledTime(data.scheduledTime || '');
             setSeoTitle(data.seoTitle || '');
             setSeoDescription(data.seoDescription || '');
           }
-        } else if (cats && cats.length > 0 && selectedCategories.length === 0) {
-          setSelectedCategories([cats[0].name]);
         }
       } catch (err) {
         setErrorMsg(err.message || 'Failed to fetch recipe details');
@@ -251,28 +258,58 @@ const RecipeForm = () => {
   // Form Submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const newErrors = {};
+
     if (!title.trim()) {
-      setErrorMsg('Recipe title is required.');
-      return;
+      newErrors.title = 'Recipe title is required.';
     }
     if (!description.trim()) {
-      setErrorMsg('Recipe description is required.');
-      return;
+      newErrors.description = 'Recipe description is required.';
     }
     if (selectedCategories.length === 0) {
-      setErrorMsg('At least one category is required.');
-      return;
+      newErrors.categories = 'At least one category is required.';
     }
-    if (isScheduled && !scheduledDate) {
-      setErrorMsg('Please select a scheduled publish date.');
+    if (prepTime === '' || prepTime === null || isNaN(prepTime) || Number(prepTime) < 0) {
+      newErrors.prepTime = 'Prep time is required (0 or more mins).';
+    }
+    if (cookTime === '' || cookTime === null || isNaN(cookTime) || Number(cookTime) < 0) {
+      newErrors.cookTime = 'Cook time is required (0 or more mins).';
+    }
+    if (servings === '' || servings === null || isNaN(servings) || Number(servings) < 1) {
+      newErrors.servings = 'Servings is required (minimum 1).';
+    }
+    if (!difficulty) {
+      newErrors.difficulty = 'Please select a difficulty level.';
+    }
+
+    const cleanIngredients = ingredients.filter((ing) => ing.item && ing.item.trim() !== '');
+    if (cleanIngredients.length === 0) {
+      newErrors.ingredients = 'At least one ingredient name is required.';
+    }
+
+    const cleanInstructions = instructions.filter((inst) => inst && inst.trim() !== '');
+    if (cleanInstructions.length === 0) {
+      newErrors.instructions = 'At least one instruction step is required.';
+    }
+
+    if (isScheduled) {
+      if (!scheduledDate) {
+        newErrors.scheduledDate = 'Please select a scheduled publish date.';
+      }
+      if (!scheduledTime) {
+        newErrors.scheduledTime = 'Please select a scheduled publish time.';
+      }
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
+      setErrorMsg('Please correct the highlighted fields below.');
       return;
     }
 
     setSaving(true);
     setErrorMsg('');
-
-    const cleanIngredients = ingredients.filter((ing) => ing.item && ing.item.trim() !== '');
-    const cleanInstructions = instructions.filter((inst) => inst && inst.trim() !== '');
+    setFieldErrors({});
 
     const primaryCategory = selectedCategories[0] || '';
 
@@ -417,7 +454,12 @@ const RecipeForm = () => {
                       label="Recipe Title *"
                       placeholder="e.g. Chicken Biryani"
                       value={title}
-                      onChange={handleTitleChange}
+                      onChange={(e) => {
+                        handleTitleChange(e);
+                        clearFieldError('title');
+                      }}
+                      error={Boolean(fieldErrors.title)}
+                      helperText={fieldErrors.title}
                       required
                     />
                   </Grid>
@@ -437,7 +479,7 @@ const RecipeForm = () => {
                   </Grid>
 
                   <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth required>
+                    <FormControl fullWidth required error={Boolean(fieldErrors.categories)}>
                       <InputLabel id="category-select-label">Categories (Select Multiple) *</InputLabel>
                       <Select
                         labelId="category-select-label"
@@ -447,6 +489,7 @@ const RecipeForm = () => {
                         onChange={(e) => {
                           const val = e.target.value;
                           setSelectedCategories(typeof val === 'string' ? val.split(',') : val);
+                          clearFieldError('categories');
                         }}
                         renderValue={(selected) => (
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
@@ -462,6 +505,9 @@ const RecipeForm = () => {
                           </MenuItem>
                         ))}
                       </Select>
+                      {fieldErrors.categories && (
+                        <FormHelperText error>{fieldErrors.categories}</FormHelperText>
+                      )}
                     </FormControl>
                   </Grid>
 
@@ -473,7 +519,12 @@ const RecipeForm = () => {
                       label="Recipe Description *"
                       placeholder="Aromatic layered rice and spiced meat dish..."
                       value={description}
-                      onChange={(e) => setDescription(e.target.value)}
+                      onChange={(e) => {
+                        setDescription(e.target.value);
+                        clearFieldError('description');
+                      }}
+                      error={Boolean(fieldErrors.description)}
+                      helperText={fieldErrors.description}
                       required
                     />
                   </Grid>
@@ -507,17 +558,21 @@ const RecipeForm = () => {
                     <Paper
                       key={idx}
                       variant="outlined"
-                      sx={{ p: 1.5, borderRadius: '10px', bgcolor: '#fafaf9', borderColor: '#e2e8f0' }}
+                      sx={{ p: 1.5, borderRadius: '10px', bgcolor: '#fafaf9', borderColor: fieldErrors.ingredients && !ing.item.trim() ? '#ef4444' : '#e2e8f0' }}
                     >
                       <Grid container spacing={1.5} alignItems="center">
                         <Grid item xs={12} sm={5}>
                           <TextField
                             fullWidth
                             size="small"
-                            label={`Ingredient #${idx + 1}`}
+                            label={`Ingredient #${idx + 1} *`}
                             placeholder="e.g. Basmati Rice"
                             value={ing.item}
-                            onChange={(e) => handleIngredientChange(idx, 'item', e.target.value)}
+                            onChange={(e) => {
+                              handleIngredientChange(idx, 'item', e.target.value);
+                              clearFieldError('ingredients');
+                            }}
+                            error={Boolean(fieldErrors.ingredients && !ing.item.trim())}
                           />
                         </Grid>
                         <Grid item xs={6} sm={3}>
@@ -554,6 +609,11 @@ const RecipeForm = () => {
                     </Paper>
                   ))}
                 </Stack>
+                {fieldErrors.ingredients && (
+                  <Typography variant="caption" color="error" sx={{ display: 'block', mt: 1.5, fontWeight: 600 }}>
+                    {fieldErrors.ingredients}
+                  </Typography>
+                )}
               </Card>
 
               {/* Card 3: Step-by-Step Instructions */}
@@ -594,10 +654,14 @@ const RecipeForm = () => {
                         fullWidth
                         multiline
                         rows={2}
-                        label={`Step ${idx + 1}`}
+                        label={`Step ${idx + 1} *`}
                         placeholder="Describe what to do in this cooking step..."
                         value={step}
-                        onChange={(e) => handleInstructionChange(idx, e.target.value)}
+                        onChange={(e) => {
+                          handleInstructionChange(idx, e.target.value);
+                          clearFieldError('instructions');
+                        }}
+                        error={Boolean(fieldErrors.instructions && !step.trim())}
                       />
                       <IconButton
                         size="small"
@@ -611,6 +675,11 @@ const RecipeForm = () => {
                     </Stack>
                   ))}
                 </Stack>
+                {fieldErrors.instructions && (
+                  <Typography variant="caption" color="error" sx={{ display: 'block', mt: 1.5, fontWeight: 600 }}>
+                    {fieldErrors.instructions}
+                  </Typography>
+                )}
               </Card>
 
               {/* Card 4: SEO Metadata */}
@@ -734,42 +803,72 @@ const RecipeForm = () => {
                     <TextField
                       fullWidth
                       type="number"
-                      label="Prep Time (mins)"
+                      label="Prep Time (mins) *"
                       value={prepTime}
-                      onChange={(e) => setPrepTime(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                      onChange={(e) => {
+                        setPrepTime(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0));
+                        clearFieldError('prepTime');
+                      }}
+                      error={Boolean(fieldErrors.prepTime)}
+                      helperText={fieldErrors.prepTime}
+                      inputProps={{ min: 0 }}
+                      required
                     />
                   </Grid>
                   <Grid item xs={6}>
                     <TextField
                       fullWidth
                       type="number"
-                      label="Cook Time (mins)"
+                      label="Cook Time (mins) *"
                       value={cookTime}
-                      onChange={(e) => setCookTime(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                      onChange={(e) => {
+                        setCookTime(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0));
+                        clearFieldError('cookTime');
+                      }}
+                      error={Boolean(fieldErrors.cookTime)}
+                      helperText={fieldErrors.cookTime}
+                      inputProps={{ min: 0 }}
+                      required
                     />
                   </Grid>
                   <Grid item xs={6}>
                     <TextField
                       fullWidth
                       type="number"
-                      label="Servings"
+                      label="Servings *"
                       value={servings}
-                      onChange={(e) => setServings(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                      onChange={(e) => {
+                        setServings(e.target.value === '' ? '' : Math.max(1, parseInt(e.target.value, 10) || 1));
+                        clearFieldError('servings');
+                      }}
+                      error={Boolean(fieldErrors.servings)}
+                      helperText={fieldErrors.servings}
+                      inputProps={{ min: 1 }}
+                      required
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <FormControl fullWidth>
-                      <InputLabel id="difficulty-label">Difficulty</InputLabel>
+                    <FormControl fullWidth required error={Boolean(fieldErrors.difficulty)}>
+                      <InputLabel id="difficulty-label">Difficulty *</InputLabel>
                       <Select
                         labelId="difficulty-label"
                         value={difficulty}
-                        label="Difficulty"
-                        onChange={(e) => setDifficulty(e.target.value)}
+                        label="Difficulty *"
+                        onChange={(e) => {
+                          setDifficulty(e.target.value);
+                          clearFieldError('difficulty');
+                        }}
                       >
+                        <MenuItem value="">
+                          <em>Select Difficulty</em>
+                        </MenuItem>
                         <MenuItem value="Easy">Easy</MenuItem>
                         <MenuItem value="Medium">Medium</MenuItem>
                         <MenuItem value="Hard">Hard</MenuItem>
                       </Select>
+                      {fieldErrors.difficulty && (
+                        <FormHelperText error>{fieldErrors.difficulty}</FormHelperText>
+                      )}
                     </FormControl>
                   </Grid>
                 </Grid>
@@ -915,8 +1014,13 @@ const RecipeForm = () => {
                             type="date"
                             label="Publish Date *"
                             value={scheduledDate}
-                            onChange={(e) => setScheduledDate(e.target.value)}
+                            onChange={(e) => {
+                              setScheduledDate(e.target.value);
+                              clearFieldError('scheduledDate');
+                            }}
                             InputLabelProps={{ shrink: true }}
+                            error={Boolean(fieldErrors.scheduledDate)}
+                            helperText={fieldErrors.scheduledDate}
                           />
                         </Grid>
                         <Grid item xs={12} sm={5}>
@@ -926,8 +1030,13 @@ const RecipeForm = () => {
                             type="time"
                             label="Publish Time *"
                             value={scheduledTime}
-                            onChange={(e) => setScheduledTime(e.target.value)}
+                            onChange={(e) => {
+                              setScheduledTime(e.target.value);
+                              clearFieldError('scheduledTime');
+                            }}
                             InputLabelProps={{ shrink: true }}
+                            error={Boolean(fieldErrors.scheduledTime)}
+                            helperText={fieldErrors.scheduledTime}
                           />
                         </Grid>
                       </Grid>

@@ -1,22 +1,27 @@
 import Link from 'next/link'
-import { featuredRecipes } from '@/data/dummyData'
+import { getRecipeBySlug } from '@/services/api'
+import FavoriteButton from '@/components/Recipe/FavoriteButton'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://recipemaster.com'
 
 export async function generateMetadata({ params }) {
   const { id } = await params
-  const recipe = featuredRecipes.find((r) => r.id === id)
+  const recipe = await getRecipeBySlug(id)
 
   if (!recipe) {
     return {
-      title: 'Recipe Not Found',
-      description: 'The requested recipe could not be found.',
+      title: 'Recipe Not Found | Recipe Master',
+      description: 'The requested recipe could not be found. Explore our catalog of delicious culinary creations.',
     }
   }
 
-  const recipeUrl = `${SITE_URL}/recipes/${recipe.id}`
-  const pageTitle = `${recipe.title} Recipe - How to Make ${recipe.title}`
-  const pageDescription = `${recipe.description} | Category: ${recipe.category} | Cooking Time: ${recipe.time} | Difficulty: ${recipe.difficulty}`
+  const slug = recipe.slug || recipe._id || id
+  const canonicalUrl = `${SITE_URL}/recipes/${slug}`
+  const pageTitle = recipe.seoTitle || `${recipe.title} Recipe - Authentic Step-by-Step Guide`
+  const pageDescription =
+    recipe.seoDescription ||
+    `${recipe.description} Prep: ${recipe.prepTime || 15}m, Cook: ${recipe.cookTime || 30}m, Difficulty: ${recipe.difficulty || 'Easy'}.`
+  const categoryName = recipe.categoryName || recipe.category?.name || 'Cuisine'
 
   return {
     title: pageTitle,
@@ -24,35 +29,38 @@ export async function generateMetadata({ params }) {
     keywords: [
       recipe.title,
       `${recipe.title} recipe`,
-      `${recipe.category} recipes`,
+      `${categoryName} recipes`,
       'how to cook',
-      recipe.difficulty,
-      'cooking instructions',
+      recipe.difficulty || 'Easy',
+      'step by step cooking',
+      ...(Array.isArray(recipe.tags) ? recipe.tags : []),
     ],
     alternates: {
-      canonical: recipeUrl,
+      canonical: canonicalUrl,
     },
     openGraph: {
-      title: `${recipe.title} - Authentic Step-by-Step Recipe`,
-      description: recipe.description,
-      url: recipeUrl,
+      title: pageTitle,
+      description: pageDescription,
+      url: canonicalUrl,
       siteName: 'Recipe Master',
       type: 'article',
-      publishedTime: '2026-02-15T08:00:00.000Z',
-      authors: ['Chef Master & Culinary Team'],
+      publishedTime: recipe.createdAt || '2026-01-01T00:00:00.000Z',
+      modifiedTime: recipe.updatedAt || recipe.createdAt || '2026-01-01T00:00:00.000Z',
+      authors: [recipe.authorName || 'Chef Master'],
+      tags: Array.isArray(recipe.tags) ? recipe.tags : [categoryName],
       images: [
         {
           url: recipe.image,
           width: 1200,
           height: 630,
-          alt: `${recipe.title} Dish Platter`,
+          alt: `${recipe.title} Culinary Presentation`,
         },
       ],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${recipe.title} Recipe - Step by Step Guide`,
-      description: recipe.description,
+      title: pageTitle,
+      description: pageDescription,
       images: [recipe.image],
       creator: '@recipemaster',
     },
@@ -61,7 +69,7 @@ export async function generateMetadata({ params }) {
 
 export default async function RecipeDetailPage({ params }) {
   const { id } = await params
-  const recipe = featuredRecipes.find((r) => r.id === id)
+  const recipe = await getRecipeBySlug(id)
 
   if (!recipe) {
     return (
@@ -80,60 +88,144 @@ export default async function RecipeDetailPage({ params }) {
     )
   }
 
-  const sampleIngredients = [
-    { item: 'Main Protein / Starches', qty: '500g', note: 'Freshly prepped' },
-    { item: 'Extra Virgin Olive Oil / Ghee', qty: '3 tbsp', note: 'Organic cold-pressed' },
-    { item: 'Aromatic Spice Blend (Garam Masala / Herbs)', qty: '2 tsp', note: 'Freshly ground' },
-    { item: 'Onions & Garlic Paste', qty: '2 medium', note: 'Finely minced' },
-    { item: 'Pureed Ripe Tomatoes / Broth', qty: '1.5 cups', note: 'Simmered base' },
-    { item: 'Fresh Cilantro / Basil Leaves', qty: 'Handful', note: 'For garnish' },
-  ]
+  const categoryName = recipe.categoryName || recipe.category?.name || recipe.category || 'Specialty'
+  const prepMinutes = parseInt(recipe.prepTime, 10) || 15
+  const cookMinutes = parseInt(recipe.cookTime, 10) || 30
+  const totalMinutes = parseInt(recipe.totalTime, 10) || prepMinutes + cookMinutes
+  const timeFormatted = recipe.totalTime ? `${recipe.totalTime} min` : recipe.time || `${totalMinutes} min`
+  const servings = recipe.servings || 4
+  const ratingVal = typeof recipe.ratingAverage === 'number' ? recipe.ratingAverage.toFixed(1) : '4.9'
+  const reviewCount = recipe.ratingCount || 120
 
-  const sampleSteps = [
-    'Prepare and wash all fresh ingredients. Measure spices and aromatics in advance.',
-    'Heat oil or butter in a heavy-bottom pan over medium heat. Sauté aromatics until fragrant and golden brown.',
-    'Add core spices and stir continuously for 60 seconds to release the essential culinary oils.',
-    'Pour in the sauce base, bring to a gentle boil, then lower the flame to simmer for 15-20 minutes.',
-    'Fold in the main ingredients, cook until perfectly tender, and rest for 5 minutes before serving garnished.',
-  ]
+  // Dynamic ingredients parser (handles arrays of objects, strings, or newline-delimited strings)
+  const parseIngredients = (raw) => {
+    if (!raw) return []
+    if (Array.isArray(raw)) {
+      return raw
+        .map((ing) => {
+          if (typeof ing === 'string') return { item: ing.trim(), qty: '', note: '' }
+          return {
+            item: (ing.item || ing.name || '').trim(),
+            qty: (ing.qty || ing.amount || '').trim(),
+            note: (ing.note || '').trim(),
+          }
+        })
+        .filter((ing) => Boolean(ing.item))
+    }
+    if (typeof raw === 'string' && raw.trim().length > 0) {
+      return raw
+        .split(/\r?\n/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((item) => ({ item, qty: '', note: '' }))
+    }
+    return []
+  }
 
-  const jsonLd = {
+  // Dynamic instructions parser (handles arrays of steps or newline-separated text)
+  const parseInstructions = (raw) => {
+    if (!raw) return []
+    if (Array.isArray(raw)) {
+      return raw
+        .map((step) => (typeof step === 'string' ? step.trim() : (step.text || step.step || '').trim()))
+        .filter(Boolean)
+    }
+    if (typeof raw === 'string' && raw.trim().length > 0) {
+      return raw
+        .split(/\r?\n/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+    }
+    return []
+  }
+
+  const ingredientsList = parseIngredients(recipe.ingredients)
+  const instructionsList = parseInstructions(recipe.instructions)
+  const nutrition = recipe.nutrition && typeof recipe.nutrition === 'object' ? recipe.nutrition : null
+  const hasNutrition = Boolean(
+    nutrition && (nutrition.calories || nutrition.protein || nutrition.carbs || nutrition.fats)
+  )
+
+  // Rich Schema.org Recipe Structured Data
+  const recipeJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Recipe',
     name: recipe.title,
     image: [recipe.image],
     description: recipe.description,
-    recipeCategory: recipe.category,
-    prepTime: 'PT15M',
-    cookTime: 'PT30M',
-    totalTime: `PT${parseInt(recipe.time) || 45}M`,
-    recipeYield: '4 servings',
+    recipeCategory: categoryName,
+    prepTime: `PT${prepMinutes}M`,
+    cookTime: `PT${cookMinutes}M`,
+    totalTime: `PT${totalMinutes}M`,
+    recipeYield: `${servings} servings`,
+    keywords: Array.isArray(recipe.tags) ? recipe.tags.join(', ') : categoryName,
     author: {
       '@type': 'Person',
-      name: 'Chef Master',
+      name: recipe.authorName || 'Chef Master',
     },
     aggregateRating: {
       '@type': 'AggregateRating',
-      ratingValue: '4.9',
-      reviewCount: '128',
+      ratingValue: ratingVal,
+      reviewCount: String(reviewCount),
+      bestRating: '5',
+      worstRating: '1',
     },
-    nutrition: {
-      '@type': 'NutritionInformation',
-      calories: '480 calories',
-    },
-    recipeIngredient: sampleIngredients.map((ing) => `${ing.qty} ${ing.item}`),
-    recipeInstructions: sampleSteps.map((step, idx) => ({
-      '@type': 'HowToStep',
-      name: `Step ${idx + 1}`,
-      text: step,
-    })),
+    ...(hasNutrition && {
+      nutrition: {
+        '@type': 'NutritionInformation',
+        ...(nutrition.calories && { calories: nutrition.calories }),
+        ...(nutrition.protein && { proteinContent: nutrition.protein }),
+        ...(nutrition.carbs && { carbohydrateContent: nutrition.carbs }),
+        ...(nutrition.fats && { fatContent: nutrition.fats }),
+      },
+    }),
+    ...(ingredientsList.length > 0 && {
+      recipeIngredient: ingredientsList.map((ing) => (ing.qty ? `${ing.qty} ${ing.item}` : ing.item)),
+    }),
+    ...(instructionsList.length > 0 && {
+      recipeInstructions: instructionsList.map((step, idx) => ({
+        '@type': 'HowToStep',
+        name: `Step ${idx + 1}`,
+        text: typeof step === 'string' ? step : step.text || '',
+      })),
+    }),
+  }
+
+  // Schema.org BreadcrumbList
+  const breadcrumbsJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: `${SITE_URL}`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Recipes',
+        item: `${SITE_URL}/recipes`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: recipe.title,
+        item: `${SITE_URL}/recipes/${recipe.slug || recipe._id || id}`,
+      },
+    ],
   }
 
   return (
     <main className="recipe-detail-page">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(recipeJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
       />
 
       <div className="recipe-detail-hero">
@@ -145,18 +237,30 @@ export default async function RecipeDetailPage({ params }) {
           </p>
           <div className="recipe-header-title-row">
             <div>
-              <span className="detail-category-badge">{recipe.category}</span>
+              <span className="detail-category-badge">{categoryName}</span>
               <h1 className="recipe-detail-title">{recipe.title}</h1>
             </div>
+            <FavoriteButton recipe={recipe} />
           </div>
           <div className="recipe-detail-meta-pills">
             <span className="meta-pill">
-              ⏱ <strong>Prep Time:</strong> {recipe.time}
+              ⏱ <strong>Prep:</strong> {prepMinutes}m
             </span>
             <span className="meta-pill">
-              🎯 <strong>Difficulty:</strong> {recipe.difficulty}
+              🔥 <strong>Cook:</strong> {cookMinutes}m
             </span>
-            <span className="meta-pill">⭐ <strong>Rating:</strong> 4.9 (120+ reviews)</span>
+            <span className="meta-pill">
+              ⌛ <strong>Total:</strong> {timeFormatted}
+            </span>
+            <span className="meta-pill">
+              🎯 <strong>Difficulty:</strong> {recipe.difficulty || 'Easy'}
+            </span>
+            <span className="meta-pill">
+              🍽 <strong>Servings:</strong> {servings}
+            </span>
+            <span className="meta-pill">
+              ⭐ <strong>Rating:</strong> {ratingVal} ({reviewCount} reviews)
+            </span>
           </div>
         </div>
       </div>
@@ -175,39 +279,63 @@ export default async function RecipeDetailPage({ params }) {
               <p className="recipe-body-text">
                 Crafted with authentic cooking principles, this recipe balances layered heat, delicate aromatics, and rich textures for an unforgettable restaurant-quality experience at home.
               </p>
+              {Array.isArray(recipe.tags) && recipe.tags.length > 0 && (
+                <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {recipe.tags.map((tag, idx) => (
+                    <span
+                      key={idx}
+                      style={{
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '9999px',
+                        background: 'rgba(255, 255, 255, 0.08)',
+                        fontSize: '0.85rem',
+                        color: 'var(--text-secondary, #a0aec0)',
+                      }}
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div className="recipe-detail-section">
-              <h2 className="section-subheading">Key Ingredients</h2>
-              <div className="ingredients-grid">
-                {sampleIngredients.map((ing, i) => (
-                  <div key={i} className="ingredient-item">
-                    <span className="ingredient-bullet">✔</span>
-                    <div className="ingredient-text">
-                      <strong>{ing.item}</strong>
-                      <span className="ingredient-qty">
-                        {ing.qty} • {ing.note}
-                      </span>
+            {ingredientsList.length > 0 && (
+              <div className="recipe-detail-section">
+                <h2 className="section-subheading">Key Ingredients ({ingredientsList.length})</h2>
+                <div className="ingredients-grid">
+                  {ingredientsList.map((ing, i) => (
+                    <div key={i} className="ingredient-item">
+                      <span className="ingredient-bullet">✔</span>
+                      <div className="ingredient-text">
+                        <strong>{ing.item}</strong>
+                        {(ing.qty || ing.note) && (
+                          <span className="ingredient-qty">
+                            {[ing.qty, ing.note].filter(Boolean).join(' • ')}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="recipe-detail-section">
-              <h2 className="section-subheading">Step-by-Step Instructions</h2>
-              <div className="steps-list">
-                {sampleSteps.map((step, idx) => (
-                  <div key={idx} className="step-card">
-                    <div className="step-number">{idx + 1}</div>
-                    <div className="step-content">
-                      <h4>Step {idx + 1}</h4>
-                      <p>{step}</p>
+            {instructionsList.length > 0 && (
+              <div className="recipe-detail-section">
+                <h2 className="section-subheading">Step-by-Step Instructions ({instructionsList.length} Steps)</h2>
+                <div className="steps-list">
+                  {instructionsList.map((step, idx) => (
+                    <div key={idx} className="step-card">
+                      <div className="step-number">{idx + 1}</div>
+                      <div className="step-content">
+                        <h4>Step {idx + 1}</h4>
+                        <p>{step}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <aside className="recipe-detail-sidebar">
@@ -218,24 +346,44 @@ export default async function RecipeDetailPage({ params }) {
               </p>
             </div>
 
+            {hasNutrition && (
+              <div className="sidebar-card">
+                <h3>Quick Nutrition Facts</h3>
+                {nutrition.calories && (
+                  <div className="nutrition-row">
+                    <span>Estimated Calories:</span>
+                    <strong>{nutrition.calories}</strong>
+                  </div>
+                )}
+                {nutrition.protein && (
+                  <div className="nutrition-row">
+                    <span>Protein:</span>
+                    <strong>{nutrition.protein}</strong>
+                  </div>
+                )}
+                {nutrition.carbs && (
+                  <div className="nutrition-row">
+                    <span>Carbohydrates:</span>
+                    <strong>{nutrition.carbs}</strong>
+                  </div>
+                )}
+                {nutrition.fats && (
+                  <div className="nutrition-row">
+                    <span>Fats:</span>
+                    <strong>{nutrition.fats}</strong>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="sidebar-card">
-              <h3>Quick Nutrition Facts</h3>
-              <div className="nutrition-row">
-                <span>Estimated Calories:</span>
-                <strong>480 kcal</strong>
-              </div>
-              <div className="nutrition-row">
-                <span>Protein:</span>
-                <strong>28g</strong>
-              </div>
-              <div className="nutrition-row">
-                <span>Carbs:</span>
-                <strong>34g</strong>
-              </div>
-              <div className="nutrition-row">
-                <span>Fats:</span>
-                <strong>18g</strong>
-              </div>
+              <h3>Curated By</h3>
+              <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary, #fff)' }}>
+                {recipe.authorName || 'Chef Master'}
+              </p>
+              <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary, #a0aec0)' }}>
+                Recipe Master Culinary Team
+              </p>
             </div>
 
             <Link href="/recipes" className="back-link full-width">

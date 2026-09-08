@@ -1,8 +1,15 @@
 import Link from 'next/link'
-import { heroSlides } from '@/data/dummyData'
+import { getHomepageData } from '@/services/api'
 
 export default async function Hero() {
-  const currentSlide = heroSlides[0]
+  const homeData = await getHomepageData()
+  const slides = Array.isArray(homeData?.heroSlides) ? homeData.heroSlides : []
+
+  if (slides.length === 0) {
+    return null
+  }
+
+  const currentSlide = slides[0]
 
   return (
     <section className="hero">
@@ -15,31 +22,31 @@ export default async function Hero() {
           <div className="hero-content">
             <div className="hero-tag">
               <span className="hero-tag-pulse"></span>
-              <span>✨ Handcrafted Culinary Art</span>
+              <span>✨ Sonia Sharma Kitchen</span>
             </div>
             <h1 className="hero-title">{currentSlide.title}</h1>
             <p className="hero-subtitle">{currentSlide.subtitle}</p>
             <div className="hero-actions">
               <Link href="/recipes" className="hero-cta">
-                <span>{currentSlide.ctaText}</span>
+                <span>{currentSlide.ctaText || 'Explore Recipes'}</span>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M5 12h14"></path>
                   <path d="m12 5 7 7-7 7"></path>
                 </svg>
               </Link>
-              <Link href="/videos" className="hero-secondary-cta">
+              {/* <Link href="/videos" className="hero-secondary-cta">
                 <span className="hero-play-icon">▶</span>
                 <span>Watch Masterclasses</span>
-              </Link>
+              </Link> */}
             </div>
           </div>
         </div>
 
         <div className="hero-dots">
-          {heroSlides.map((slide, index) => (
+          {slides.map((slide, index) => (
             <Link
-              key={slide.id}
-              href={`/recipes`}
+              key={slide.id || index}
+              href="/recipes"
               className={`hero-dot ${index === 0 ? 'active' : ''}`}
               aria-label={`Slide ${index + 1}`}
             />

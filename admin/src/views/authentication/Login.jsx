@@ -88,8 +88,8 @@ const Login = () => {
 
         <Formik
           initialValues={{
-            email: 'admin@recipe.com',
-            password: 'admin123',
+            email: '',
+            password: '',
             submit: null,
           }}
           validationSchema={Yup.object().shape({
@@ -124,6 +124,7 @@ const Login = () => {
                   type="email"
                   value={values.email}
                   name="email"
+                  placeholder="example@gmail.com"
                   onBlur={handleBlur}
                   onChange={handleChange}
                   label="Email Address"
@@ -143,6 +144,7 @@ const Login = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={values.password}
                   name="password"
+                  placeholder="Enter your password"
                   onBlur={handleBlur}
                   onChange={handleChange}
                   label="Password"
@@ -207,39 +209,6 @@ const Login = () => {
                   </Button>
                 </AnimateButton>
               </Box>
-
-              <Divider sx={{ my: 3 }}>
-                <Chip label="QUICK ADMIN ACCOUNTS" size="small" sx={{ fontWeight: 600, fontSize: '0.7rem' }} />
-              </Divider>
-
-              <Grid container spacing={1}>
-                <Grid item xs={6}>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    size="small"
-                    onClick={() => {
-                      setFieldValue('email', 'admin@recipe.com');
-                      setFieldValue('password', 'admin123');
-                    }}
-                  >
-                    Admin User
-                  </Button>
-                </Grid>
-                <Grid item xs={6}>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    size="small"
-                    onClick={() => {
-                      setFieldValue('email', 'admin@foodie-admin.io');
-                      setFieldValue('password', 'Password@123');
-                    }}
-                  >
-                    Demo Admin
-                  </Button>
-                </Grid>
-              </Grid>
             </form>
           )}
         </Formik>

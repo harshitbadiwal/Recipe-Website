@@ -1,14 +1,33 @@
 import Link from 'next/link'
+import { getCategories } from '@/services/api'
 
-const Footer = () => {
+export default async function Footer() {
+  const categories = await getCategories()
+  const displayCategories = Array.isArray(categories) ? categories.slice(0, 6) : []
+
   return (
     <footer className="footer">
       <div className="container">
         <div className="footer-content">
           <div className="footer-column">
-            <h3 className="footer-title">Recipe Master</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <img
+                src="/logo.png"
+                alt="Sonia Sharma"
+                style={{
+                  width: '52px',
+                  height: '52px',
+                  borderRadius: '50%',
+                  objectFit: 'contain',
+                  background: '#ffffff',
+                  padding: '2px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                }}
+              />
+              <h3 className="footer-title" style={{ margin: 0 }}>Sonia Sharma</h3>
+            </div>
             <p className="footer-description">
-              Your ultimate destination for authentic recipes, cooking tips, and culinary inspiration.
+              Your ultimate destination for authentic recipes, cooking tips, and culinary inspiration by Sonia Sharma.
             </p>
             <div className="social-links">
               <a href="#" className="social-link" aria-label="Facebook">
@@ -42,40 +61,41 @@ const Footer = () => {
             <ul className="footer-links">
               <li><Link href="/">Home</Link></li>
               <li><Link href="/recipes">Recipes</Link></li>
-              <li><Link href="/videos">Videos</Link></li>
+              <li><Link href="/categories">Categories</Link></li>
               <li><Link href="/articles">Articles</Link></li>
               <li><Link href="/about">About Us</Link></li>
+              <li><Link href="/contact">Contact</Link></li>
             </ul>
           </div>
 
           <div className="footer-column">
             <h4 className="footer-heading">Categories</h4>
             <ul className="footer-links">
-              <li><Link href="/category/Veg">Vegetarian</Link></li>
-              <li><Link href="/category/Non-Veg">Non-Vegetarian</Link></li>
-              <li><Link href="/category/Desserts">Desserts</Link></li>
-              <li><Link href="/category/Snacks">Snacks</Link></li>
-              <li><Link href="/category/Beverages">Beverages</Link></li>
+              {displayCategories.map((cat) => {
+                const slug = cat.slug || cat.name
+                return (
+                  <li key={cat._id || cat.id || slug}>
+                    <Link href={`/category/${slug}`}>{cat.name}</Link>
+                  </li>
+                )
+              })}
             </ul>
           </div>
 
           <div className="footer-column">
-            <h4 className="footer-heading">Contact</h4>
+            <h4 className="footer-heading">Connect</h4>
             <ul className="footer-links">
-              <li>Email: info@recipemaster.com</li>
-              <li>Phone: +1 234 567 890</li>
-              <li>Address: 123 Recipe Street</li>
-              <li>City, Country 12345</li>
+              <li><Link href="/contact">Send Feedback</Link></li>
+              <li><Link href="/about">Our Culinary Journey</Link></li>
+              <li><Link href="/favorites">Saved Recipes</Link></li>
             </ul>
           </div>
         </div>
 
         <div className="footer-bottom">
-          <p>&copy; 2026 Recipe Master. All rights reserved.</p>
+          <p>&copy; 2026 Sonia Sharma. All rights reserved.</p>
         </div>
       </div>
     </footer>
   )
 }
-
-export default Footer

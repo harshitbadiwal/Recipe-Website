@@ -29,7 +29,7 @@ export default function HomePage() {
     <main className="home">
       <Hero />
       <FeaturedRecipes />
-      <VideoSection />
+      {/* <VideoSection /> */}
       <CategorySection />
       <ArticlesSection />
       <Newsletter />
