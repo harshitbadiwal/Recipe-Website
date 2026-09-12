@@ -38,6 +38,10 @@ export const metadata = {
 export default async function CategoriesIndexPage() {
   const categoriesList = await getCategories()
 
+  // Separate top-level categories and subcategories
+  const mainCategories = categoriesList.filter((c) => !c.parentCategory)
+  const displayCategories = mainCategories.length > 0 ? mainCategories : categoriesList
+
   // Schema.org CollectionPage & BreadcrumbList
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -66,7 +70,7 @@ export default async function CategoriesIndexPage() {
         url: `${SITE_URL}/categories`,
         mainEntity: {
           '@type': 'ItemList',
-          itemListElement: categoriesList.map((cat, idx) => ({
+          itemListElement: displayCategories.map((cat, idx) => ({
             '@type': 'ListItem',
             position: idx + 1,
             name: cat.name,
@@ -98,37 +102,49 @@ export default async function CategoriesIndexPage() {
       </div>
 
       <div className="container" style={{ paddingBottom: '80px' }}>
-        <div className="categories-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '32px' }}>
-          {categoriesList.map((category) => {
+        <div className="categories-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '32px' }}>
+          {displayCategories.map((category) => {
             const catSlug = category.slug || category.name
+            const childSubcategories =
+              (Array.isArray(category.subcategories) && category.subcategories.length > 0)
+                ? category.subcategories
+                : categoriesList.filter((c) => {
+                    const pId = c.parentCategory?._id?.toString() || c.parentCategory?.toString()
+                    const pSlug = (c.parentCategory?.slug || '').toLowerCase()
+                    return pId === category._id?.toString() || pSlug === (category.slug || '').toLowerCase()
+                  })
+
             return (
-              <Link
+              <div
                 key={category._id || category.id || catSlug}
-                href={`/category/${catSlug}`}
-                className="category-card-link"
+                className="category-card"
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '16px',
+                  padding: '24px 16px',
+                  border: '1px solid #f1f5f9',
+                  boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.05)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                }}
               >
-                <div
-                  className="category-card"
-                  style={{
-                    background: '#ffffff',
-                    borderRadius: '16px',
-                    padding: '24px 16px',
-                    border: '1px solid #f1f5f9',
-                    boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.05)',
-                  }}
-                >
-                  <div className="category-image-wrapper">
-                    <div className="category-glow-ring"></div>
-                    <img
-                      src={category.image}
-                      alt={category.name}
-                      className="category-image"
-                      loading="lazy"
-                    />
-                  </div>
-                  <h2 className="category-name" style={{ fontSize: '18px' }}>
-                    {category.name}
-                  </h2>
+                <div>
+                  <Link href={`/category/${catSlug}`} className="category-card-link">
+                    <div className="category-image-wrapper">
+                      <div className="category-glow-ring"></div>
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="category-image"
+                        loading="lazy"
+                      />
+                    </div>
+                    <h2 className="category-name" style={{ fontSize: '18px' }}>
+                      {category.name}
+                    </h2>
+                  </Link>
+
                   {category.description && (
                     <p
                       style={{
@@ -146,9 +162,54 @@ export default async function CategoriesIndexPage() {
                       {category.description}
                     </p>
                   )}
-                  <span className="category-explore-tag">Browse Recipes →</span>
+
+                  {/* Subcategories list */}
+                  {childSubcategories.length > 0 && (
+                    <div style={{ marginTop: '10px', marginBottom: '14px' }}>
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: '700',
+                          color: 'var(--primary, #e11d48)',
+                          textTransform: 'uppercase',
+                          display: 'block',
+                          marginBottom: '6px',
+                        }}
+                      >
+                        ↳ Subcategories:
+                      </span>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        {childSubcategories.slice(0, 4).map((sub) => (
+                          <Link
+                            key={sub._id || sub.slug || sub.name}
+                            href={`/recipes?category=${encodeURIComponent(catSlug)}&subCategory=${encodeURIComponent(sub.slug || sub.name)}`}
+                            style={{
+                              fontSize: '11px',
+                              background: '#f8fafc',
+                              color: '#334155',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              border: '1px solid #e2e8f0',
+                              textDecoration: 'none',
+                              fontWeight: '600',
+                            }}
+                          >
+                            {sub.name}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </Link>
+
+                <Link
+                  href={`/category/${catSlug}`}
+                  className="category-explore-tag"
+                  style={{ marginTop: '12px', display: 'inline-block' }}
+                >
+                  Browse Recipes →
+                </Link>
+              </div>
             )
           })}
         </div>

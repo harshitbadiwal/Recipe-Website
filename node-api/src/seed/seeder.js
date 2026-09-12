@@ -4,7 +4,7 @@ const Category = require('../models/Category.model');
 const Recipe = require('../models/Recipe.model');
 const Blog = require('../models/Blog.model');
 const logger = require('../utils/logger');
-const { defaultUsers, defaultCategories, defaultRecipes, defaultBlogs } = require('./seedData');
+const { defaultUsers, defaultCategories, defaultSubcategories, defaultRecipes, defaultBlogs } = require('./seedData');
 
 const seedDB = async () => {
   try {
@@ -33,6 +33,21 @@ const seedDB = async () => {
       categoryMap[cat.name] = cat;
     }
 
+    logger.info('Seeding default subcategories...');
+    const subcategoryMap = {};
+    for (const sc of defaultSubcategories) {
+      const parent = categoryMap[sc.parentCategoryName];
+      const subcat = await Category.create({
+        name: sc.name,
+        slug: sc.slug,
+        description: sc.description,
+        image: sc.image,
+        parentCategory: parent ? parent._id : null,
+        parentCategoryName: parent ? parent.name : '',
+      });
+      subcategoryMap[sc.name] = subcat;
+    }
+
     logger.info('Seeding default recipes...');
     for (const r of defaultRecipes) {
       const catObj = categoryMap[r.categoryName] || Object.values(categoryMap)[0];
@@ -40,6 +55,8 @@ const seedDB = async () => {
         ...r,
         category: catObj._id,
         categoryName: catObj.name,
+        categories: [catObj._id],
+        categoryNames: [catObj.name],
         author: adminUser._id,
       });
     }

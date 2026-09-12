@@ -15,6 +15,7 @@ const createCategoryValidator = [
   body('name').trim().notEmpty().withMessage('Category name is required'),
   body('slug').optional().trim(),
   body('description').optional().trim(),
+  body('parentCategory').optional().custom((val) => val === '' || val === null || val === 'null' || /^[0-9a-fA-F]{24}$/.test(val)).withMessage('Invalid parent category ID'),
   body('image').optional({ checkFalsy: true }).custom(validateImage),
   body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
@@ -24,6 +25,7 @@ const updateCategoryValidator = [
   body('name').optional().trim().notEmpty().withMessage('Category name cannot be empty'),
   body('slug').optional().trim(),
   body('description').optional().trim(),
+  body('parentCategory').optional().custom((val) => val === '' || val === null || val === 'null' || /^[0-9a-fA-F]{24}$/.test(val)).withMessage('Invalid parent category ID'),
   body('image').optional({ checkFalsy: true }).custom(validateImage),
   body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];

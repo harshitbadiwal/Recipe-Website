@@ -50,6 +50,28 @@ const recipeSchema = new mongoose.Schema(
         type: String,
       },
     ],
+    subCategory: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Category',
+      required: false,
+      index: true,
+    },
+    subCategoryName: {
+      type: String,
+      default: '',
+    },
+    subCategories: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Category',
+        index: true,
+      },
+    ],
+    subCategoryNames: [
+      {
+        type: String,
+      },
+    ],
     tags: [
       {
         type: String,

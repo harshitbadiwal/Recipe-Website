@@ -3,6 +3,8 @@ import { getCategories } from '@/services/api'
 
 export default async function CategorySection() {
   const activeCategories = await getCategories()
+  const mainCategories = activeCategories.filter((c) => !c.parentCategory)
+  const displayCategories = mainCategories.length > 0 ? mainCategories : activeCategories
 
   return (
     <section className="category-section">
@@ -16,7 +18,7 @@ export default async function CategorySection() {
         </div>
 
         <div className="categories-grid">
-          {activeCategories.map((category, idx) => {
+          {displayCategories.map((category, idx) => {
             const catSlug = category.slug || category.name
             return (
               <Link

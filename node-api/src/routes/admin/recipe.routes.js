@@ -11,6 +11,7 @@ const {
 router.post('/', upload.single('image'), validate(createRecipeValidator), adminRecipeController.createRecipe);
 router.get('/', adminRecipeController.getAllRecipes);
 router.get('/:id', adminRecipeController.getRecipeById);
+router.post('/:id/duplicate', adminRecipeController.duplicateRecipe);
 router.patch('/:id', upload.single('image'), validate(updateRecipeValidator), adminRecipeController.updateRecipe);
 router.put('/:id', upload.single('image'), validate(updateRecipeValidator), adminRecipeController.updateRecipe);
 router.delete('/:id', adminRecipeController.deleteRecipe);

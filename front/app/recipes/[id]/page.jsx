@@ -22,6 +22,11 @@ export async function generateMetadata({ params }) {
     recipe.seoDescription ||
     `${recipe.description} Prep: ${recipe.prepTime || 15}m, Cook: ${recipe.cookTime || 30}m, Difficulty: ${recipe.difficulty || 'Easy'}.`
   const categoryName = recipe.categoryName || recipe.category?.name || 'Cuisine'
+  const subCategoryName =
+    recipe.subCategoryName ||
+    recipe.subCategory?.name ||
+    (Array.isArray(recipe.subCategoryNames) && recipe.subCategoryNames[0]) ||
+    ''
 
   return {
     title: pageTitle,
@@ -30,6 +35,7 @@ export async function generateMetadata({ params }) {
       recipe.title,
       `${recipe.title} recipe`,
       `${categoryName} recipes`,
+      ...(subCategoryName ? [`${subCategoryName} recipes`, `${categoryName} ${subCategoryName}`] : []),
       'how to cook',
       recipe.difficulty || 'Easy',
       'step by step cooking',
@@ -47,7 +53,7 @@ export async function generateMetadata({ params }) {
       publishedTime: recipe.createdAt || '2026-01-01T00:00:00.000Z',
       modifiedTime: recipe.updatedAt || recipe.createdAt || '2026-01-01T00:00:00.000Z',
       authors: [recipe.authorName || 'Chef Master'],
-      tags: Array.isArray(recipe.tags) ? recipe.tags : [categoryName],
+      tags: Array.isArray(recipe.tags) ? recipe.tags : [categoryName, ...(subCategoryName ? [subCategoryName] : [])],
       images: [
         {
           url: recipe.image,
@@ -89,6 +95,11 @@ export default async function RecipeDetailPage({ params }) {
   }
 
   const categoryName = recipe.categoryName || recipe.category?.name || recipe.category || 'Specialty'
+  const subCategoryName =
+    recipe.subCategoryName ||
+    recipe.subCategory?.name ||
+    (Array.isArray(recipe.subCategoryNames) && recipe.subCategoryNames[0]) ||
+    ''
   const prepMinutes = parseInt(recipe.prepTime, 10) || 15
   const cookMinutes = parseInt(recipe.cookTime, 10) || 30
   const totalMinutes = parseInt(recipe.totalTime, 10) || prepMinutes + cookMinutes
@@ -191,30 +202,49 @@ export default async function RecipeDetailPage({ params }) {
     }),
   }
 
-  // Schema.org BreadcrumbList
+  // Schema.org BreadcrumbList with category and subcategory
+  const breadcrumbItems = [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Home',
+      item: `${SITE_URL}`,
+    },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: 'Recipes',
+      item: `${SITE_URL}/recipes`,
+    },
+  ]
+  let pos = 3
+  if (categoryName) {
+    breadcrumbItems.push({
+      '@type': 'ListItem',
+      position: pos++,
+      name: categoryName,
+      item: `${SITE_URL}/recipes?category=${encodeURIComponent(recipe.category?.slug || categoryName)}`,
+    })
+  }
+  if (subCategoryName) {
+    breadcrumbItems.push({
+      '@type': 'ListItem',
+      position: pos++,
+      name: subCategoryName,
+      item: `${SITE_URL}/recipes?category=${encodeURIComponent(recipe.category?.slug || categoryName)}&subCategory=${encodeURIComponent(recipe.subCategory?.slug || subCategoryName)}`,
+    })
+  }
+  breadcrumbItems.push({
+    '@type': 'ListItem',
+    position: pos,
+    name: recipe.title,
+    item: `${SITE_URL}/recipes/${recipe.slug || recipe._id || id}`,
+  })
+
   const breadcrumbsJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
-    itemListElement: [
-      {
-        '@type': 'ListItem',
-        position: 1,
-        name: 'Home',
-        item: `${SITE_URL}`,
-      },
-      {
-        '@type': 'ListItem',
-        position: 2,
-        name: 'Recipes',
-        item: `${SITE_URL}/recipes`,
-      },
-      {
-        '@type': 'ListItem',
-        position: 3,
-        name: recipe.title,
-        item: `${SITE_URL}/recipes/${recipe.slug || recipe._id || id}`,
-      },
-    ],
+    itemListElement: breadcrumbItems,
   }
 
   return (
@@ -232,12 +262,51 @@ export default async function RecipeDetailPage({ params }) {
         <div className="container">
           <p className="breadcrumb">
             <Link href="/">Home</Link> <span className="breadcrumb-sep">/</span>{' '}
-            <Link href="/recipes">Recipes</Link> <span className="breadcrumb-sep">/</span>{' '}
+            <Link href="/recipes">Recipes</Link>
+            {categoryName && (
+              <>
+                {' '}<span className="breadcrumb-sep">/</span>{' '}
+                <Link href={`/recipes?category=${encodeURIComponent(recipe.category?.slug || categoryName)}`}>
+                  {categoryName}
+                </Link>
+              </>
+            )}
+            {subCategoryName && (
+              <>
+                {' '}<span className="breadcrumb-sep">/</span>{' '}
+                <Link
+                  href={`/recipes?category=${encodeURIComponent(recipe.category?.slug || categoryName)}&subCategory=${encodeURIComponent(recipe.subCategory?.slug || subCategoryName)}`}
+                >
+                  {subCategoryName}
+                </Link>
+              </>
+            )}
+            {' '}<span className="breadcrumb-sep">/</span>{' '}
             <span>{recipe.title}</span>
           </p>
           <div className="recipe-header-title-row">
             <div>
-              <span className="detail-category-badge">{categoryName}</span>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px', alignItems: 'center' }}>
+                <Link
+                  href={`/recipes?category=${encodeURIComponent(recipe.category?.slug || categoryName)}`}
+                  className="detail-category-badge"
+                >
+                  {categoryName}
+                </Link>
+                {subCategoryName && (
+                  <Link
+                    href={`/recipes?category=${encodeURIComponent(recipe.category?.slug || categoryName)}&subCategory=${encodeURIComponent(recipe.subCategory?.slug || subCategoryName)}`}
+                    className="detail-category-badge"
+                    style={{
+                      background: 'rgba(225, 29, 72, 0.1)',
+                      color: 'var(--primary, #e11d48)',
+                      borderColor: 'rgba(225, 29, 72, 0.25)',
+                    }}
+                  >
+                    ↳ {subCategoryName}
+                  </Link>
+                )}
+              </div>
               <h1 className="recipe-detail-title">{recipe.title}</h1>
             </div>
             <FavoriteButton recipe={recipe} />

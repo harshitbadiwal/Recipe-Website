@@ -27,6 +27,10 @@ import {
   CircularProgress,
   Switch,
   FormControlLabel,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
   useTheme,
 } from '@mui/material';
 import {
@@ -69,6 +73,8 @@ const CategoryList = () => {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [isSlugManual, setIsSlugManual] = useState(false);
+  const [parentCategory, setParentCategory] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [imageFile, setImageFile] = useState(null);
@@ -105,11 +111,16 @@ const CategoryList = () => {
     fetchCategories();
   }, []);
 
+  const topLevelCategories = useMemo(() => {
+    return categories.filter((c) => !c.parentCategory);
+  }, [categories]);
+
   const handleOpenCreate = () => {
     setEditingCategory(null);
     setName('');
     setSlug('');
     setIsSlugManual(false);
+    setParentCategory('');
     setDescription('');
     setImageUrl('');
     setImageFile(null);
@@ -124,6 +135,11 @@ const CategoryList = () => {
     setName(cat.name || '');
     setSlug(cat.slug || '');
     setIsSlugManual(true);
+    const pId =
+      cat.parentCategory && typeof cat.parentCategory === 'object'
+        ? cat.parentCategory._id
+        : cat.parentCategory || '';
+    setParentCategory(pId);
     setDescription(cat.description || '');
     setImageUrl(cat.image || '');
     setImagePreview(cat.image || '');
@@ -169,6 +185,7 @@ const CategoryList = () => {
       name: name.trim(),
       slug: slug.trim() || slugify(name),
       description: description.trim(),
+      parentCategory: parentCategory || null,
       image: imageUrl.trim(),
       isActive,
     };
@@ -250,15 +267,25 @@ const CategoryList = () => {
   };
 
   const filteredCategories = useMemo(() => {
-    if (!searchQuery) return categories;
-    const q = searchQuery.toLowerCase();
-    return categories.filter(
-      (c) =>
+    return categories.filter((c) => {
+      const q = searchQuery.toLowerCase();
+      const matchesSearch =
+        !searchQuery ||
         c.name?.toLowerCase().includes(q) ||
         c.description?.toLowerCase().includes(q) ||
-        c.slug?.toLowerCase().includes(q)
-    );
-  }, [categories, searchQuery]);
+        c.slug?.toLowerCase().includes(q) ||
+        c.parentCategoryName?.toLowerCase().includes(q);
+
+      let matchesType = true;
+      if (typeFilter === 'top-level') {
+        matchesType = !c.parentCategory;
+      } else if (typeFilter === 'subcategory') {
+        matchesType = Boolean(c.parentCategory);
+      }
+
+      return matchesSearch && matchesType;
+    });
+  }, [categories, searchQuery, typeFilter]);
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -315,24 +342,40 @@ const CategoryList = () => {
           </Grid>
         </Grid>
 
-        {/* Search Bar */}
-        <Box sx={{ mt: 3, maxWidth: 500 }}>
-          <TextField
-            fullWidth
-            size="small"
-            placeholder="Search categories by name, slug, or description..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <IconSearch size="18px" color={theme.palette.grey[500]} />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ bgcolor: '#fff', borderRadius: '10px' }}
-          />
-        </Box>
+        {/* Search Bar & Type Filter */}
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 3 }} alignItems="center">
+          <Box sx={{ flexGrow: 1, width: { xs: '100%', sm: 'auto' }, maxWidth: 500 }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Search categories by name, slug, or description..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <IconSearch size="18px" color={theme.palette.grey[500]} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ bgcolor: '#fff', borderRadius: '10px' }}
+            />
+          </Box>
+          <FormControl size="small" sx={{ minWidth: 200, width: { xs: '100%', sm: 'auto' } }}>
+            <InputLabel id="type-filter-label">Category Type</InputLabel>
+            <Select
+              labelId="type-filter-label"
+              value={typeFilter}
+              label="Category Type"
+              onChange={(e) => setTypeFilter(e.target.value)}
+              sx={{ bgcolor: '#fff', borderRadius: '10px' }}
+            >
+              <MenuItem value="all">All Categories ({categories.length})</MenuItem>
+              <MenuItem value="top-level">Top-Level Only ({topLevelCategories.length})</MenuItem>
+              <MenuItem value="subcategory">Subcategories Only ({categories.length - topLevelCategories.length})</MenuItem>
+            </Select>
+          </FormControl>
+        </Stack>
       </Card>
 
       {/* Categories Table */}
@@ -342,6 +385,7 @@ const CategoryList = () => {
             <TableHead sx={{ bgcolor: theme.palette.grey[50] }}>
               <TableRow>
                 <TableCell sx={{ fontWeight: 700, py: 2 }}>Category</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Type / Parent</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Slug</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
@@ -353,7 +397,7 @@ const CategoryList = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                  <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
                     <CircularProgress size={36} color="primary" />
                     <Typography variant="body2" sx={{ mt: 2 }} color="textSecondary">
                       Loading categories...
@@ -362,7 +406,7 @@ const CategoryList = () => {
                 </TableRow>
               ) : filteredCategories.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                  <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
                     <IconCategory size="48px" color={theme.palette.grey[400]} />
                     <Typography variant="h4" sx={{ mt: 1, fontWeight: 700 }}>
                       No Categories Found
@@ -401,13 +445,34 @@ const CategoryList = () => {
                           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                             {cat.name}
                           </Typography>
-                          {cat.recipesCount !== undefined && (
+                          {(cat.recipeCount !== undefined || cat.recipesCount !== undefined) && (
                             <Typography variant="caption" color="textSecondary">
-                              {cat.recipesCount} recipe{cat.recipesCount === 1 ? '' : 's'}
+                              {cat.recipeCount ?? cat.recipesCount} recipe{(cat.recipeCount ?? cat.recipesCount) === 1 ? '' : 's'}
                             </Typography>
                           )}
                         </Box>
                       </Stack>
+                    </TableCell>
+
+                    <TableCell>
+                      {cat.parentCategory ? (
+                        <Tooltip title={`Child of ${cat.parentCategoryName || (typeof cat.parentCategory === 'object' ? cat.parentCategory.name : 'Parent')}`}>
+                          <Chip
+                            label={`↳ ${cat.parentCategoryName || (typeof cat.parentCategory === 'object' ? cat.parentCategory.name : 'Subcategory')}`}
+                            size="small"
+                            color="secondary"
+                            variant="outlined"
+                            sx={{ fontWeight: 700, fontSize: '0.73rem' }}
+                          />
+                        </Tooltip>
+                      ) : (
+                        <Chip
+                          label="Top-Level Category"
+                          size="small"
+                          color="primary"
+                          sx={{ fontWeight: 700, fontSize: '0.73rem' }}
+                        />
+                      )}
                     </TableCell>
 
                     <TableCell>
@@ -488,13 +553,34 @@ const CategoryList = () => {
               <TextField
                 fullWidth
                 label="Category Name *"
-                placeholder="e.g. Non-Veg, Desserts"
+                placeholder="e.g. Non-Veg, Desserts, Paneer Dishes"
                 value={name}
                 onChange={handleNameChange}
                 error={Boolean(fieldErrors.name)}
                 helperText={fieldErrors.name}
                 required
               />
+
+              <FormControl fullWidth size="small">
+                <InputLabel id="parent-cat-select-label">Parent Category (Optional)</InputLabel>
+                <Select
+                  labelId="parent-cat-select-label"
+                  value={parentCategory}
+                  label="Parent Category (Optional)"
+                  onChange={(e) => setParentCategory(e.target.value)}
+                >
+                  <MenuItem value="">
+                    <em>None (Top-Level Category)</em>
+                  </MenuItem>
+                  {topLevelCategories
+                    .filter((c) => !editingCategory || c._id !== editingCategory._id)
+                    .map((c) => (
+                      <MenuItem key={c._id} value={c._id}>
+                        {c.name}
+                      </MenuItem>
+                    ))}
+                </Select>
+              </FormControl>
 
               <TextField
                 fullWidth

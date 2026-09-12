@@ -145,6 +145,7 @@ export async function getCategoryRecipes(slugOrId, options = {}) {
       category: res.meta?.category || null,
       recipes: res.data,
       total: res.meta?.total || res.data.length,
+      subcategories: res.meta?.subcategories || [],
     };
   }
 
@@ -152,6 +153,7 @@ export async function getCategoryRecipes(slugOrId, options = {}) {
     category: null,
     recipes: [],
     total: 0,
+    subcategories: [],
   };
 }
 

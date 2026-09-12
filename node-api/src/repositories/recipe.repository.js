@@ -10,6 +10,8 @@ class RecipeRepository {
     return await Recipe.findOne({ slug: slug.toLowerCase() })
       .populate('category', 'name slug image')
       .populate('categories', 'name slug image')
+      .populate('subCategory', 'name slug image parentCategory')
+      .populate('subCategories', 'name slug image parentCategory')
       .exec();
   }
 
@@ -17,6 +19,8 @@ class RecipeRepository {
     return await Recipe.findById(id)
       .populate('category', 'name slug image')
       .populate('categories', 'name slug image')
+      .populate('subCategory', 'name slug image parentCategory')
+      .populate('subCategories', 'name slug image parentCategory')
       .exec();
   }
 
@@ -28,6 +32,8 @@ class RecipeRepository {
       Recipe.find(filter)
         .populate('category', 'name slug image')
         .populate('categories', 'name slug image')
+        .populate('subCategory', 'name slug image parentCategory')
+        .populate('subCategories', 'name slug image parentCategory')
         .sort(sort)
         .skip(skip)
         .limit(limit)
@@ -66,6 +72,30 @@ class RecipeRepository {
           localField: 'categories',
           foreignField: '_id',
           as: 'categories',
+        },
+      },
+      // Join SubCategory
+      {
+        $lookup: {
+          from: 'categories',
+          localField: 'subCategory',
+          foreignField: '_id',
+          as: 'subCategory',
+        },
+      },
+      {
+        $unwind: {
+          path: '$subCategory',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      // Join SubCategories
+      {
+        $lookup: {
+          from: 'categories',
+          localField: 'subCategories',
+          foreignField: '_id',
+          as: 'subCategories',
         },
       },
       // Join Comments Count

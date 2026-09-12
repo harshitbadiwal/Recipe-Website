@@ -6,8 +6,11 @@ const HTTP_STATUS = require('../constants/httpStatusCodes');
 const mongoose = require('mongoose');
 
 class CategoryService {
-  async getCategories(includeInactive = false) {
+  async getCategories(includeInactive = false, parentOnly = false) {
     const filter = includeInactive ? {} : { isActive: true };
+    if (parentOnly) {
+      filter.$or = [{ parentCategory: null }, { parentCategory: { $exists: false } }];
+    }
     const { categories } = await categoryRepository.findAll(filter);
     return categories;
   }
@@ -28,11 +31,30 @@ class CategoryService {
 
   async getCategoryRecipes(slugOrId, options = {}) {
     const category = await this.getCategoryBySlugOrId(slugOrId);
+    const childSubCats = await categoryRepository.findAll({ parentCategory: category._id });
+    const allTargetCatIds = [
+      category._id,
+      ...(childSubCats.categories ? childSubCats.categories.map((c) => c._id) : []),
+    ];
+
     const { recipes, total } = await recipeRepository.findAll(
-      { category: category._id, isPublished: true },
+      {
+        $or: [
+          { category: { $in: allTargetCatIds } },
+          { categories: { $in: allTargetCatIds } },
+          { subCategory: { $in: allTargetCatIds } },
+          { subCategories: { $in: allTargetCatIds } },
+        ],
+        isPublished: true,
+      },
       options
     );
-    return { category, recipes, total };
+    return {
+      category,
+      recipes,
+      total,
+      subcategories: childSubCats.categories || [],
+    };
   }
 
   // CREATE
@@ -44,6 +66,20 @@ class CategoryService {
       throw new ConflictError('Category with this name/slug already exists');
     }
 
+    if (categoryData.parentCategory && categoryData.parentCategory !== 'null' && categoryData.parentCategory !== '') {
+      const parent = await categoryRepository.findById(categoryData.parentCategory);
+      if (parent) {
+        categoryData.parentCategory = parent._id;
+        categoryData.parentCategoryName = parent.name;
+      } else {
+        categoryData.parentCategory = null;
+        categoryData.parentCategoryName = '';
+      }
+    } else {
+      categoryData.parentCategory = null;
+      categoryData.parentCategoryName = '';
+    }
+
     return await categoryRepository.create({
       ...categoryData,
       slug,
@@ -51,7 +87,7 @@ class CategoryService {
   }
 
   async getAllCategoriesAdmin(queryParams = {}) {
-    const { q, page = 1, limit = 20, sort = 'name_asc' } = queryParams;
+    const { q, page = 1, limit = 20, sort = 'name_asc', type } = queryParams;
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
 
@@ -60,7 +96,14 @@ class CategoryService {
       matchFilter.$or = [
         { name: { $regex: q, $options: 'i' } },
         { description: { $regex: q, $options: 'i' } },
+        { parentCategoryName: { $regex: q, $options: 'i' } },
       ];
+    }
+
+    if (type === 'parent') {
+      matchFilter.$or = [{ parentCategory: null }, { parentCategory: { $exists: false } }];
+    } else if (type === 'subcategory') {
+      matchFilter.parentCategory = { $ne: null, $exists: true };
     }
 
     let sortObj = { name: 1 };
@@ -104,6 +147,23 @@ class CategoryService {
       }
     }
 
+    if (categoryData.parentCategory && categoryData.parentCategory !== 'null' && categoryData.parentCategory !== '') {
+      if (categoryData.parentCategory.toString() === id.toString()) {
+        throw new ConflictError('A category cannot be its own parent');
+      }
+      const parent = await categoryRepository.findById(categoryData.parentCategory);
+      if (parent) {
+        categoryData.parentCategory = parent._id;
+        categoryData.parentCategoryName = parent.name;
+      } else {
+        categoryData.parentCategory = null;
+        categoryData.parentCategoryName = '';
+      }
+    } else if (categoryData.parentCategory === null || categoryData.parentCategory === '' || categoryData.parentCategory === 'null') {
+      categoryData.parentCategory = null;
+      categoryData.parentCategoryName = '';
+    }
+
     return await categoryRepository.updateById(id, categoryData);
   }
 
@@ -112,6 +172,16 @@ class CategoryService {
     const category = await categoryRepository.findById(id);
     if (!category) {
       throw new NotFoundError('Category not found');
+    }
+
+    // Safety check: Prevent deletion if subcategories depend on this category
+    const subCats = await categoryRepository.findAll({ parentCategory: id });
+    if (subCats.total > 0) {
+      throw new AppError(
+        `Cannot delete category '${category.name}' because it contains ${subCats.total} child subcategory/subcategories. Reassign or delete child subcategories first.`,
+        HTTP_STATUS.BAD_REQUEST,
+        'PARENT_CATEGORY_IN_USE'
+      );
     }
 
     // Safety check: Prevent deletion if recipes depend on this category

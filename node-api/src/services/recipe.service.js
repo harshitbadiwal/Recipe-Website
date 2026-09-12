@@ -81,6 +81,59 @@ class RecipeService {
     };
   }
 
+  async _resolveSubCategories(recipeData) {
+    let rawSubCategories = recipeData.subCategories !== undefined ? recipeData.subCategories : recipeData.subCategory;
+    if (typeof rawSubCategories === 'string') {
+      try {
+        const parsed = JSON.parse(rawSubCategories);
+        if (Array.isArray(parsed)) rawSubCategories = parsed;
+      } catch (e) {
+        if (rawSubCategories.includes(',')) {
+          rawSubCategories = rawSubCategories.split(',').map((s) => s.trim()).filter(Boolean);
+        } else {
+          rawSubCategories = [rawSubCategories.trim()];
+        }
+      }
+    }
+    if (!Array.isArray(rawSubCategories)) {
+      rawSubCategories = rawSubCategories ? [rawSubCategories] : [];
+    }
+    rawSubCategories = rawSubCategories.filter(Boolean);
+
+    const subCategoriesArr = [];
+    const subCategoryNamesArr = [];
+
+    for (const item of rawSubCategories) {
+      let subCatObj = null;
+      if (typeof item === 'object' && item !== null && item._id) {
+        subCatObj = item;
+      } else if (mongoose.Types.ObjectId.isValid(item)) {
+        subCatObj = await categoryRepository.findById(item);
+      } else if (typeof item === 'string') {
+        subCatObj = await categoryRepository.findBySlug(item);
+        if (!subCatObj) {
+          const allCats = await categoryRepository.findAll({}, { limit: 100 });
+          subCatObj = allCats.categories.find(
+            (c) => c.name.toLowerCase() === item.toLowerCase() || c.slug.toLowerCase() === item.toLowerCase()
+          );
+        }
+      }
+      if (subCatObj) {
+        if (!subCategoriesArr.some((id) => id.toString() === subCatObj._id.toString())) {
+          subCategoriesArr.push(subCatObj._id);
+          subCategoryNamesArr.push(subCatObj.name);
+        }
+      }
+    }
+
+    return {
+      subCategories: subCategoriesArr,
+      subCategoryNames: subCategoryNamesArr,
+      subCategory: subCategoriesArr[0] || null,
+      subCategoryName: subCategoryNamesArr[0] || '',
+    };
+  }
+
   _resolveScheduling(recipeData, existingRecipe = null) {
     const isScheduledRaw = recipeData.isScheduled ?? recipeData.is_scheduled ?? recipeData.is_posting ?? (existingRecipe ? existingRecipe.isScheduled : false);
     const isScheduled = isScheduledRaw === true || isScheduledRaw === 'true' || isScheduledRaw === 1 || isScheduledRaw === '1';
@@ -121,6 +174,7 @@ class RecipeService {
     const {
       q,
       category,
+      subCategory,
       tag,
       difficulty,
       minTime,
@@ -143,6 +197,8 @@ class RecipeService {
         { tags: { $regex: q, $options: 'i' } },
         { categoryName: { $regex: q, $options: 'i' } },
         { categoryNames: { $regex: q, $options: 'i' } },
+        { subCategoryName: { $regex: q, $options: 'i' } },
+        { subCategoryNames: { $regex: q, $options: 'i' } },
       ];
     }
 
@@ -165,6 +221,30 @@ class RecipeService {
         delete filter.$or;
       } else {
         filter.$or = catOrArray;
+      }
+    }
+
+    if (subCategory) {
+      const subCatOrArray = [];
+      if (mongoose.Types.ObjectId.isValid(subCategory)) {
+        subCatOrArray.push({ subCategory: subCategory }, { subCategories: subCategory });
+      } else {
+        const subCatObj = await categoryRepository.findBySlug(subCategory);
+        if (subCatObj) {
+          subCatOrArray.push({ subCategory: subCatObj._id }, { subCategories: subCatObj._id });
+        }
+        subCatOrArray.push(
+          { subCategoryName: { $regex: `^${subCategory}$`, $options: 'i' } },
+          { subCategoryNames: { $regex: `^${subCategory}$`, $options: 'i' } }
+        );
+      }
+      if (filter.$and) {
+        filter.$and.push({ $or: subCatOrArray });
+      } else if (filter.$or) {
+        filter.$and = [{ $or: filter.$or }, { $or: subCatOrArray }];
+        delete filter.$or;
+      } else {
+        filter.$or = subCatOrArray;
       }
     }
 
@@ -280,6 +360,7 @@ class RecipeService {
     }
 
     const catData = await this._resolveCategories(recipeData);
+    const subCatData = await this._resolveSubCategories(recipeData);
     const schedData = this._resolveScheduling(recipeData);
 
     const totalTime = (parseInt(recipeData.prepTime) || 15) + (parseInt(recipeData.cookTime) || 30);
@@ -287,6 +368,7 @@ class RecipeService {
     const recipeToSave = {
       ...recipeData,
       ...catData,
+      ...subCatData,
       ...schedData,
       slug,
       totalTime,
@@ -295,6 +377,53 @@ class RecipeService {
     };
 
     return await recipeRepository.create(recipeToSave);
+  }
+
+  // DUPLICATE
+  async duplicateRecipe(id, currentUser = null) {
+    const original = await this.getRecipeBySlugOrId(id, false);
+    if (!original) {
+      throw new NotFoundError('Recipe not found to duplicate');
+    }
+
+    const origObj = original.toObject ? original.toObject() : { ...original };
+    delete origObj._id;
+    delete origObj.id;
+    delete origObj.createdAt;
+    delete origObj.updatedAt;
+    delete origObj.__v;
+
+    const baseTitle = origObj.title || 'Untitled Recipe';
+    const newTitle = `${baseTitle} (Copy)`;
+
+    let baseSlug = createSlug(origObj.slug ? `${origObj.slug}-copy` : `${baseTitle}-copy`);
+    let uniqueSlug = baseSlug;
+    let counter = 1;
+    while (await recipeRepository.findBySlug(uniqueSlug)) {
+      uniqueSlug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
+    const duplicatedData = {
+      ...origObj,
+      title: newTitle,
+      slug: uniqueSlug,
+      isPublished: false, // Save copy as draft by default
+      isFeatured: false,
+      isScheduled: false,
+      scheduledDate: '',
+      scheduledTime: '',
+      scheduledAt: null,
+      createdBy: currentUser ? currentUser._id : origObj.createdBy,
+      author: currentUser ? currentUser._id : origObj.author,
+      authorName: currentUser ? currentUser.name : origObj.authorName,
+      views: 0,
+      likesCount: 0,
+      ratingCount: 0,
+      ratingAverage: 0,
+    };
+
+    return await recipeRepository.create(duplicatedData);
   }
 
   // UPDATE
@@ -326,6 +455,11 @@ class RecipeService {
     if (recipeData.category !== undefined || recipeData.categories !== undefined) {
       const catData = await this._resolveCategories(recipeData);
       Object.assign(recipeData, catData);
+    }
+
+    if (recipeData.subCategory !== undefined || recipeData.subCategories !== undefined) {
+      const subCatData = await this._resolveSubCategories(recipeData);
+      Object.assign(recipeData, subCatData);
     }
 
     const schedData = this._resolveScheduling(recipeData, recipe);

@@ -58,6 +58,51 @@ const defaultCategories = [
   },
 ];
 
+const defaultSubcategories = [
+  {
+    name: 'Paneer Dishes',
+    slug: 'paneer-dishes',
+    parentCategoryName: 'Veg',
+    description: 'Tender cottage cheese cooked in creamy, spiced and rich gravies.',
+    image: 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=400&h=300&fit=crop',
+  },
+  {
+    name: 'Dal & Lentils',
+    slug: 'dal-lentils',
+    parentCategoryName: 'Veg',
+    description: 'Protein-rich comforting dal and legume recipes simmered with aromatic tadka.',
+    image: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&h=300&fit=crop',
+  },
+  {
+    name: 'Chicken Specialties',
+    slug: 'chicken-specialties',
+    parentCategoryName: 'Non-Veg',
+    description: 'Classic tandoori, curried, and slow-cooked rich chicken delicacies.',
+    image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400&h=300&fit=crop',
+  },
+  {
+    name: 'Biryani & Rice',
+    slug: 'biryani-rice',
+    parentCategoryName: 'Non-Veg',
+    description: 'Dum cooked layered aromatic basmati rice dishes with savory marinated meats.',
+    image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400&h=300&fit=crop',
+  },
+  {
+    name: 'Indian Mithai',
+    slug: 'indian-mithai',
+    parentCategoryName: 'Desserts',
+    description: 'Festive gulab jamun, halwa, kheer, and traditional melt-in-the-mouth sweets.',
+    image: 'https://images.unsplash.com/photo-1605197584547-c93ed1a71911?w=400&h=300&fit=crop',
+  },
+  {
+    name: 'Street Food & Chaat',
+    slug: 'street-food-chaat',
+    parentCategoryName: 'Snacks',
+    description: 'Tangy, crispy, spicy Indian street food and tea-time snacks.',
+    image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&h=300&fit=crop',
+  },
+];
+
 const defaultRecipes = [
   {
     title: 'Butter Chicken',
@@ -243,6 +288,7 @@ const defaultBlogs = [
 module.exports = {
   defaultUsers,
   defaultCategories,
+  defaultSubcategories,
   defaultRecipes,
   defaultBlogs,
 };

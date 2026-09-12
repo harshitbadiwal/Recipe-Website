@@ -7,6 +7,7 @@ export async function generateMetadata({ searchParams }) {
   const params = await searchParams
   const query = params?.q?.trim() || ''
   const category = params?.category?.trim() || ''
+  const subCategory = params?.subCategory?.trim() || ''
   const difficulty = params?.difficulty?.trim() || ''
   const page = parseInt(params?.page, 10) || 1
 
@@ -15,11 +16,14 @@ export async function generateMetadata({ searchParams }) {
     'Browse our comprehensive catalog of vegetarian, non-vegetarian, snacks, breads, and dessert recipes with prep times, step-by-step instructions, and difficulty levels.'
 
   if (query && category) {
-    pageTitle = `"${query}" in ${category} Recipes`
+    pageTitle = `"${query}" in ${category}${subCategory ? ` (${subCategory})` : ''} Recipes`
     pageDescription = `Discover authentic ${category} recipes matching "${query}". Step-by-step masterclasses and chef cooking instructions.`
   } else if (query) {
     pageTitle = `Search Results for "${query}"`
     pageDescription = `Explore recipes matching "${query}". Authentic spices, precise cooking steps, and chef tips.`
+  } else if (category && subCategory) {
+    pageTitle = `Authentic ${subCategory} Recipes (${category}) - Step-by-Step Guides`
+    pageDescription = `Explore the best ${subCategory} recipes under ${category} with authentic ingredients, prep times, and chef instructions.`
   } else if (category) {
     pageTitle = `Authentic ${category} Recipes - Traditional & Modern Creations`
     pageDescription = `Explore the best ${category} recipes with authentic ingredients, prep times, and step-by-step chef guides.`
@@ -35,6 +39,7 @@ export async function generateMetadata({ searchParams }) {
   const queryObj = {}
   if (query) queryObj.q = query
   if (category) queryObj.category = category
+  if (subCategory) queryObj.subCategory = subCategory
   if (difficulty) queryObj.difficulty = difficulty
   if (page > 1) queryObj.page = String(page)
   const queryString = new URLSearchParams(queryObj).toString()
@@ -74,6 +79,7 @@ export default async function RecipesPage({ searchParams }) {
   const resolvedParams = await searchParams
   const query = resolvedParams?.q?.trim() || ''
   const selectedCategory = resolvedParams?.category?.trim() || ''
+  const selectedSubCategory = resolvedParams?.subCategory?.trim() || ''
   const selectedDifficulty = resolvedParams?.difficulty?.trim() || ''
   const selectedSort = resolvedParams?.sort?.trim() || 'latest'
   const currentPage = Math.max(1, parseInt(resolvedParams?.page, 10) || 1)
@@ -84,6 +90,7 @@ export default async function RecipesPage({ searchParams }) {
     getRecipes({
       q: query,
       category: selectedCategory,
+      subCategory: selectedSubCategory,
       difficulty: selectedDifficulty,
       sort: selectedSort,
       page: currentPage,
@@ -92,15 +99,50 @@ export default async function RecipesPage({ searchParams }) {
     getCategories(),
   ])
 
+  // Partition categories into Top-Level and Subcategories
+  const mainCategories = activeCategories.filter((c) => !c.parentCategory)
+  const topCategories = mainCategories.length > 0 ? mainCategories : activeCategories
+  const allSubCategories = activeCategories.filter((c) => Boolean(c.parentCategory))
+
+  // Find currently selected category object (if any)
+  const selectedCatObj = selectedCategory
+    ? activeCategories.find(
+        (c) =>
+          (c.slug || '').toLowerCase() === selectedCategory.toLowerCase() ||
+          (c.name || '').toLowerCase() === selectedCategory.toLowerCase() ||
+          c._id?.toString() === selectedCategory
+      )
+    : null
+
+  // Relevant subcategories for the selected category (or all if none selected)
+  const relevantSubCategories = selectedCatObj
+    ? allSubCategories.filter((sub) => {
+        const pId = sub.parentCategory?._id?.toString() || sub.parentCategory?.toString()
+        const pSlug = (sub.parentCategory?.slug || '').toLowerCase()
+        const pName = (sub.parentCategory?.name || sub.parentCategoryName || '').toLowerCase()
+        return (
+          pId === selectedCatObj._id?.toString() ||
+          pSlug === (selectedCatObj.slug || '').toLowerCase() ||
+          pName === (selectedCatObj.name || '').toLowerCase()
+        )
+      })
+    : []
+
   // Helper to construct filter URLs preserving active query filters
   const buildFilterUrl = (overrides = {}) => {
     const params = {
       ...(query && { q: query }),
       ...(selectedCategory && { category: selectedCategory }),
+      ...(selectedSubCategory && { subCategory: selectedSubCategory }),
       ...(selectedDifficulty && { difficulty: selectedDifficulty }),
       ...(selectedSort && selectedSort !== 'latest' && { sort: selectedSort }),
       page: '1',
       ...overrides,
+    }
+
+    // Reset subCategory if category is explicitly changed without a new subCategory
+    if ('category' in overrides && !('subCategory' in overrides)) {
+      delete params.subCategory
     }
 
     // Remove keys that are cleared
@@ -123,7 +165,11 @@ export default async function RecipesPage({ searchParams }) {
   const itemListJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    name: selectedCategory ? `${selectedCategory} Recipes` : 'Curated Recipes Catalog',
+    name: selectedSubCategory && selectedCategory
+      ? `${selectedCategory} - ${selectedSubCategory} Recipes`
+      : selectedCategory
+      ? `${selectedCategory} Recipes`
+      : 'Curated Recipes Catalog',
     description: 'Explore curated chef recipes with authentic ingredients and instructions.',
     numberOfItems: recipes.length,
     itemListElement: recipes.map((recipe, index) => ({
@@ -145,24 +191,35 @@ export default async function RecipesPage({ searchParams }) {
       <div className="recipes-hero">
         <div className="container">
           <p className="breadcrumb" style={{ marginBottom: '12px' }}>
-            <Link href="/">Home</Link> <span className="breadcrumb-sep">/</span> <span>Recipes</span>
+            <Link href="/">Home</Link> <span className="breadcrumb-sep">/</span>{' '}
+            <Link href="/recipes">Recipes</Link>
             {selectedCategory && (
               <>
                 <span className="breadcrumb-sep">/</span>
-                <span>{selectedCategory}</span>
+                <Link href={buildFilterUrl({ subCategory: null })}>{selectedCatObj?.name || selectedCategory}</Link>
+              </>
+            )}
+            {selectedSubCategory && (
+              <>
+                <span className="breadcrumb-sep">/</span>
+                <span>{selectedSubCategory}</span>
               </>
             )}
           </p>
           <h1 className="recipes-hero-title">
             {query
               ? `Search Results for "${query}"`
+              : selectedSubCategory && selectedCategory
+              ? `${selectedCategory}: ${selectedSubCategory}`
               : selectedCategory
-              ? `${selectedCategory} Recipes`
+              ? `${selectedCatObj?.name || selectedCategory} Recipes`
               : 'All Master Recipes'}
           </h1>
           <p className="recipes-hero-subtitle">
             {query
               ? `Found ${meta.total} recipe${meta.total === 1 ? '' : 's'} matching your search.`
+              : selectedSubCategory
+              ? `Specialized ${selectedSubCategory} recipes crafted with authentic techniques and balanced flavors.`
               : selectedCategory
               ? `Explore authentic ${selectedCategory} culinary dishes, handcrafted spices, and step-by-step techniques.`
               : 'Explore our curated catalog of authentic recipes, from slow-simmered curries to crispy street snacks.'}
@@ -176,6 +233,7 @@ export default async function RecipesPage({ searchParams }) {
           <div className="recipes-search-row">
             <form action="/recipes" method="GET" className="recipes-search-box">
               {selectedCategory && <input type="hidden" name="category" value={selectedCategory} />}
+              {selectedSubCategory && <input type="hidden" name="subCategory" value={selectedSubCategory} />}
               {selectedDifficulty && <input type="hidden" name="difficulty" value={selectedDifficulty} />}
               {selectedSort && selectedSort !== 'latest' && (
                 <input type="hidden" name="sort" value={selectedSort} />
@@ -204,6 +262,7 @@ export default async function RecipesPage({ searchParams }) {
             <form action="/recipes" method="GET" className="recipes-sort-box">
               {query && <input type="hidden" name="q" value={query} />}
               {selectedCategory && <input type="hidden" name="category" value={selectedCategory} />}
+              {selectedSubCategory && <input type="hidden" name="subCategory" value={selectedSubCategory} />}
               {selectedDifficulty && <input type="hidden" name="difficulty" value={selectedDifficulty} />}
               <label htmlFor="recipe-sort-select">Sort By:</label>
               <select
@@ -222,22 +281,25 @@ export default async function RecipesPage({ searchParams }) {
           </div>
 
           <div className="recipes-filter-groups">
-            {/* Category Filter Pills */}
+            {/* Main Category Filter Pills */}
             <div className="filter-pills-row">
               <span className="filter-group-title">Category:</span>
               <Link
-                href={buildFilterUrl({ category: null })}
+                href={buildFilterUrl({ category: null, subCategory: null })}
                 className={`filter-pill ${!selectedCategory ? 'active' : ''}`}
               >
                 All
               </Link>
-              {activeCategories.map((cat) => {
+              {topCategories.map((cat) => {
                 const isActive =
                   selectedCategory.toLowerCase() === (cat.slug || cat.name).toLowerCase()
                 return (
                   <Link
                     key={cat._id || cat.id || cat.slug}
-                    href={buildFilterUrl({ category: isActive ? null : cat.slug || cat.name })}
+                    href={buildFilterUrl({
+                      category: isActive ? null : cat.slug || cat.name,
+                      subCategory: null,
+                    })}
                     className={`filter-pill ${isActive ? 'active' : ''}`}
                   >
                     {cat.name}
@@ -245,6 +307,48 @@ export default async function RecipesPage({ searchParams }) {
                 )
               })}
             </div>
+
+            {/* Child Subcategory Filter Pills (rendered dynamically if available) */}
+            {relevantSubCategories.length > 0 && (
+              <div
+                className="filter-pills-row subcategory-pills-row"
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  background: 'rgba(248, 250, 252, 0.9)',
+                  borderRadius: '12px',
+                  border: '1px dashed #cbd5e1',
+                }}
+              >
+                <span
+                  className="filter-group-title"
+                  style={{ color: 'var(--primary, #e11d48)', fontWeight: '800' }}
+                >
+                  ↳ Subcategory:
+                </span>
+                <Link
+                  href={buildFilterUrl({ subCategory: null })}
+                  className={`filter-pill ${!selectedSubCategory ? 'active' : ''}`}
+                  style={{ fontSize: '12px', padding: '4px 12px' }}
+                >
+                  All {selectedCatObj?.name || 'Subcategories'}
+                </Link>
+                {relevantSubCategories.map((sub) => {
+                  const isActive =
+                    selectedSubCategory.toLowerCase() === (sub.slug || sub.name).toLowerCase()
+                  return (
+                    <Link
+                      key={sub._id || sub.id || sub.slug}
+                      href={buildFilterUrl({ subCategory: isActive ? null : sub.slug || sub.name })}
+                      className={`filter-pill ${isActive ? 'active' : ''}`}
+                      style={{ fontSize: '12px', padding: '4px 12px' }}
+                    >
+                      {sub.name}
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
 
             {/* Difficulty Filter Pills */}
             <div className="filter-pills-row">
@@ -294,6 +398,11 @@ export default async function RecipesPage({ searchParams }) {
                 const recipeSlug = recipe.slug || recipe._id || recipe.id
                 const categoryLabel =
                   recipe.categoryName || recipe.category?.name || recipe.category || 'Specialty'
+                const subCategoryLabel =
+                  recipe.subCategoryName ||
+                  recipe.subCategory?.name ||
+                  (Array.isArray(recipe.subCategoryNames) && recipe.subCategoryNames[0]) ||
+                  ''
                 const cookTime = recipe.totalTime
                   ? `${recipe.totalTime} min`
                   : recipe.time || '45 min'
@@ -316,12 +425,20 @@ export default async function RecipesPage({ searchParams }) {
                           className="recipe-image-page"
                           loading="lazy"
                         />
-                        <span className="recipe-category-page">{categoryLabel}</span>
+                        <span className="recipe-category-page">
+                          {categoryLabel}
+                          {subCategoryLabel ? ` • ${subCategoryLabel}` : ''}
+                        </span>
                         <span className="recipe-time-page">⏱ {cookTime}</span>
                       </div>
                       <div className="recipe-info-page">
                         <h3 className="recipe-title-page">{recipe.title}</h3>
                         <p className="recipe-meta-page">
+                          {subCategoryLabel && (
+                            <span style={{ color: '#64748b', fontWeight: '600' }}>
+                              ↳ {subCategoryLabel} •{' '}
+                            </span>
+                          )}
                           {recipe.difficulty || 'Easy'} • ⭐ {rating}
                         </p>
                         <p className="recipe-description-page">

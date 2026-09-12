@@ -183,6 +183,17 @@ const RecipeDetail = () => {
                 size="small"
                 sx={{ bgcolor: theme.palette.primary.main, color: '#fff', fontWeight: 700 }}
               />
+              {(recipe.subCategory || recipe.subCategoryName || (Array.isArray(recipe.subCategoryNames) && recipe.subCategoryNames.length > 0)) && (
+                <Chip
+                  label={
+                    typeof recipe.subCategory === 'object' && recipe.subCategory !== null
+                      ? `↳ ${recipe.subCategory.name || recipe.subCategory.slug}`
+                      : `↳ ${recipe.subCategoryName || (Array.isArray(recipe.subCategoryNames) ? recipe.subCategoryNames.join(', ') : recipe.subCategory)}`
+                  }
+                  size="small"
+                  sx={{ bgcolor: 'rgba(255,255,255,0.35)', color: '#fff', fontWeight: 700, backdropFilter: 'blur(4px)' }}
+                />
+              )}
               <Chip
                 label={recipe.difficulty || 'Medium'}
                 size="small"

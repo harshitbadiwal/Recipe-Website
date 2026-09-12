@@ -293,6 +293,34 @@ export const recipeService = {
     saveStoredRecipes(filtered);
     return true;
   },
+
+  duplicateRecipe: async (id) => {
+    try {
+      const response = await api.post(`/admin/recipes/${id}/duplicate`);
+      const duplicated = response.data;
+      const list = getStoredRecipes();
+      saveStoredRecipes([duplicated, ...list]);
+      return duplicated;
+    } catch (error) {
+      // Local fallback duplication
+      const list = getStoredRecipes();
+      const original = list.find((r) => r._id === id);
+      if (original) {
+        const copy = {
+          ...original,
+          _id: `recipe-${Date.now()}`,
+          title: `${original.title} (Copy)`,
+          slug: `${original.slug || 'recipe'}-copy-${Date.now().toString().slice(-4)}`,
+          isPublished: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        saveStoredRecipes([copy, ...list]);
+        return copy;
+      }
+      throw error;
+    }
+  },
 };
 
 export default recipeService;

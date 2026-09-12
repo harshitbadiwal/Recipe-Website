@@ -13,6 +13,11 @@ export default function MiniRecipeCard({ recipe, onSelect }) {
   const title = recipe.title || 'Untitled Recipe'
   const image = recipe.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&h=400&fit=crop'
   const catName = recipe.categoryName || recipe.category?.name || recipe.category || 'Specialty'
+  const subCatName =
+    recipe.subCategoryName ||
+    recipe.subCategory?.name ||
+    (Array.isArray(recipe.subCategoryNames) && recipe.subCategoryNames[0]) ||
+    ''
   
   // Format total cooking time
   const timeMinutes = recipe.totalTime || (recipe.prepTime && recipe.cookTime ? recipe.prepTime + recipe.cookTime : null) || recipe.cookTime || recipe.time || 25
@@ -69,7 +74,7 @@ export default function MiniRecipeCard({ recipe, onSelect }) {
           {/* Top-Left Category Badge */}
           <span className={`mini-card-cat-badge ${getCategoryClass(catName)}`}>
             <span className="mini-cat-icon">{getCategoryEmoji(catName)}</span>
-            <span>{catName}</span>
+            <span>{catName}{subCatName ? ` • ${subCatName}` : ''}</span>
           </span>
 
           {/* Top-Right Favorite Button */}
@@ -101,6 +106,14 @@ export default function MiniRecipeCard({ recipe, onSelect }) {
         {/* Content Details */}
         <div className="mini-card-body">
           <div className="mini-card-meta-row">
+            {subCatName && (
+              <>
+                <span style={{ color: 'var(--primary, #e11d48)', fontWeight: '700', fontSize: '11px' }}>
+                  ↳ {subCatName}
+                </span>
+                <span className="mini-meta-dot">•</span>
+              </>
+            )}
             <span className="mini-star-icon">★</span>
             <span className="mini-rating-text">{rating}</span>
             <span className="mini-meta-dot">•</span>

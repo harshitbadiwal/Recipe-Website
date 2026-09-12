@@ -36,13 +36,14 @@ class CategoryController {
 
   // GET RECIPES BY CATEGORY
   getCategoryRecipes = asyncWrapper(async (req, res) => {
-    const { category, recipes, total } = await categoryService.getCategoryRecipes(req.params.slug, {
+    const { category, recipes, total, subcategories } = await categoryService.getCategoryRecipes(req.params.slug, {
       page: parseInt(req.query.page, 10) || 1,
       limit: parseInt(req.query.limit, 10) || 20,
     });
     return ApiResponse.success(res, HTTP_STATUS.OK, `Recipes for category '${category.name}' fetched`, recipes, {
       category,
       total,
+      subcategories: subcategories || [],
     });
   });
 }

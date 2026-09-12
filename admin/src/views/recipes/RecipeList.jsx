@@ -38,6 +38,7 @@ import {
   IconPlus,
   IconEye,
   IconEdit,
+  IconCopy,
   IconTrash,
   IconClock,
   IconStar,
@@ -60,6 +61,7 @@ const RecipeList = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [duplicatingId, setDuplicatingId] = useState(null);
 
   // Pagination
   const [page, setPage] = useState(0);
@@ -136,6 +138,38 @@ const RecipeList = () => {
     }
   };
 
+  const handleDuplicate = async (recipe) => {
+    if (!recipe || duplicatingId) return;
+    setDuplicatingId(recipe._id);
+    try {
+      const duplicated = await recipeService.duplicateRecipe(recipe._id);
+      dispatch(
+        openSnackbar({
+          open: true,
+          message: `Recipe duplicated successfully as "${duplicated?.title || recipe.title + ' (Copy)'}"!`,
+          variant: 'alert',
+          alert: { color: 'success' },
+          close: true,
+        })
+      );
+      if (duplicated) {
+        setRecipes((prev) => [duplicated, ...prev]);
+      }
+    } catch (err) {
+      dispatch(
+        openSnackbar({
+          open: true,
+          message: err.message || 'Failed to duplicate recipe',
+          variant: 'alert',
+          alert: { color: 'error' },
+          close: true,
+        })
+      );
+    } finally {
+      setDuplicatingId(null);
+    }
+  };
+
   const getCategoryName = (cat, fallbackName) => {
     if (!cat && !fallbackName) return 'General';
     if (typeof cat === 'string') return cat;
@@ -154,10 +188,15 @@ const RecipeList = () => {
         recipe.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (Array.isArray(recipe.tags) && recipe.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase())));
 
-      const catName = getCategoryName(recipe.category, recipe.categoryName).toLowerCase();
+      const allRecipeCats = [
+        getCategoryName(recipe.category, recipe.categoryName).toLowerCase(),
+        ...(Array.isArray(recipe.categoryNames) ? recipe.categoryNames.map((c) => c.toLowerCase()) : []),
+        ...(recipe.subCategoryName ? [recipe.subCategoryName.toLowerCase()] : []),
+        ...(Array.isArray(recipe.subCategoryNames) ? recipe.subCategoryNames.map((s) => s.toLowerCase()) : []),
+      ];
       const matchesCat =
         selectedCategory === 'all' ||
-        catName === selectedCategory.toLowerCase();
+        allRecipeCats.includes(selectedCategory.toLowerCase());
 
       return matchesSearch && matchesCat;
     });
@@ -286,12 +325,19 @@ const RecipeList = () => {
                 }}
                 sx={{ bgcolor: '#fff', borderRadius: '10px' }}
               >
-                <MenuItem value="all">All Categories</MenuItem>
-                {categories.map((c) => (
-                  <MenuItem key={c._id || c.name} value={c.name}>
-                    {c.name}
-                  </MenuItem>
-                ))}
+                <MenuItem value="all">All Categories & Subcategories</MenuItem>
+                {categories.map((c) => {
+                  const isSub = Boolean(c.parentCategory);
+                  return (
+                    <MenuItem
+                      key={c._id || c.name}
+                      value={c.name}
+                      sx={{ pl: isSub ? 3 : 2, fontStyle: isSub ? 'italic' : 'normal' }}
+                    >
+                      {isSub ? `↳ ${c.name}` : c.name}
+                    </MenuItem>
+                  );
+                })}
               </Select>
             </FormControl>
           </Grid>
@@ -409,7 +455,7 @@ const RecipeList = () => {
                         </Stack>
                       </TableCell>
 
-                      {/* Category */}
+                      {/* Category & Subcategory */}
                       <TableCell>
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                           {(() => {
@@ -421,22 +467,53 @@ const RecipeList = () => {
                             } else {
                               catList = [getCategoryName(recipe.category, recipe.categoryName)];
                             }
-                            return catList.map((cName, idx) => {
-                              const catStyle = getCategoryColor(cName);
-                              return (
-                                <Chip
-                                  key={idx}
-                                  size="small"
-                                  label={cName}
-                                  sx={{
-                                    bgcolor: catStyle.bg,
-                                    color: catStyle.text,
-                                    fontWeight: 700,
-                                    fontSize: '0.75rem',
-                                  }}
-                                />
-                              );
-                            });
+
+                            let subList = [];
+                            if (Array.isArray(recipe.subCategories) && recipe.subCategories.length > 0) {
+                              subList = recipe.subCategories.map((sc) => (typeof sc === 'object' && sc !== null ? sc.name : sc));
+                            } else if (Array.isArray(recipe.subCategoryNames) && recipe.subCategoryNames.length > 0) {
+                              subList = recipe.subCategoryNames;
+                            } else if (recipe.subCategoryName || recipe.subCategory) {
+                              const sName = typeof recipe.subCategory === 'object' && recipe.subCategory !== null ? recipe.subCategory.name : recipe.subCategory;
+                              if (sName || recipe.subCategoryName) subList = [sName || recipe.subCategoryName];
+                            }
+
+                            return (
+                              <>
+                                {catList.filter(Boolean).map((cName, idx) => {
+                                  const catStyle = getCategoryColor(cName);
+                                  return (
+                                    <Chip
+                                      key={`cat-${idx}`}
+                                      size="small"
+                                      label={cName}
+                                      sx={{
+                                        bgcolor: catStyle.bg,
+                                        color: catStyle.text,
+                                        fontWeight: 700,
+                                        fontSize: '0.75rem',
+                                      }}
+                                    />
+                                  );
+                                })}
+                                {subList.filter(Boolean).map((sName, sIdx) => (
+                                  <Tooltip key={`sub-${sIdx}`} title={`Subcategory: ${sName}`}>
+                                    <Chip
+                                      size="small"
+                                      variant="outlined"
+                                      label={`↳ ${sName}`}
+                                      sx={{
+                                        fontWeight: 600,
+                                        fontSize: '0.72rem',
+                                        color: theme.palette.text.secondary,
+                                        borderColor: theme.palette.divider,
+                                        bgcolor: 'rgba(0,0,0,0.02)',
+                                      }}
+                                    />
+                                  </Tooltip>
+                                ))}
+                              </>
+                            );
                           })()}
                         </Box>
                       </TableCell>
@@ -518,6 +595,29 @@ const RecipeList = () => {
                               }}
                             >
                               <IconEdit size="18px" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Duplicate Recipe">
+                            <IconButton
+                              size="small"
+                              color="secondary"
+                              disabled={duplicatingId === recipe._id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDuplicate(recipe);
+                              }}
+                              sx={{
+                                color: theme.palette.secondary.main,
+                                '&:hover': {
+                                  bgcolor: 'rgba(249, 115, 22, 0.08)',
+                                },
+                              }}
+                            >
+                              {duplicatingId === recipe._id ? (
+                                <CircularProgress size={16} color="inherit" />
+                              ) : (
+                                <IconCopy size="18px" />
+                              )}
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Delete Recipe">

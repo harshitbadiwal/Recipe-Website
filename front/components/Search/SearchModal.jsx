@@ -177,14 +177,16 @@ export default function SearchModal() {
             <div className="suggestions-chips-scroll">
               {categories.map((cat) => {
                 const catName = cat.name || cat.slug || ''
+                const isSub = Boolean(cat.parentCategory)
                 return (
                   <button
                     key={cat._id || cat.id || cat.slug || catName}
                     type="button"
                     className={`search-chip-btn ${query.toLowerCase() === catName.toLowerCase() ? 'active' : ''}`}
                     onClick={() => handleSuggestionClick(catName)}
+                    style={isSub ? { borderStyle: 'dashed' } : undefined}
                   >
-                    {catName}
+                    {isSub ? `↳ ${catName}` : catName}
                   </button>
                 )
               })}
