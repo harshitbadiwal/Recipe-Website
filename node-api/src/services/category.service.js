@@ -66,17 +66,21 @@ class CategoryService {
       throw new ConflictError('Category with this name/slug already exists');
     }
 
-    if (categoryData.parentCategory && categoryData.parentCategory !== 'null' && categoryData.parentCategory !== '') {
-      const parent = await categoryRepository.findById(categoryData.parentCategory);
+    const parentId = categoryData.categoryId || categoryData.parentCategory;
+    if (parentId && parentId !== 'null' && parentId !== '') {
+      const parent = await categoryRepository.findById(parentId);
       if (parent) {
         categoryData.parentCategory = parent._id;
+        categoryData.categoryId = parent._id;
         categoryData.parentCategoryName = parent.name;
       } else {
         categoryData.parentCategory = null;
+        categoryData.categoryId = null;
         categoryData.parentCategoryName = '';
       }
     } else {
       categoryData.parentCategory = null;
+      categoryData.categoryId = null;
       categoryData.parentCategoryName = '';
     }
 
@@ -87,7 +91,7 @@ class CategoryService {
   }
 
   async getAllCategoriesAdmin(queryParams = {}) {
-    const { q, page = 1, limit = 20, sort = 'name_asc', type } = queryParams;
+    const { q, page = 1, limit = 20, sort = 'name_asc', type, categoryId, parentCategory } = queryParams;
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
 
@@ -104,6 +108,22 @@ class CategoryService {
       matchFilter.$or = [{ parentCategory: null }, { parentCategory: { $exists: false } }];
     } else if (type === 'subcategory') {
       matchFilter.parentCategory = { $ne: null, $exists: true };
+    }
+
+    const filterParentId = categoryId || parentCategory;
+    if (filterParentId && filterParentId !== 'all') {
+      if (mongoose.Types.ObjectId.isValid(filterParentId)) {
+        const pObjId = new mongoose.Types.ObjectId(filterParentId);
+        const parentFilter = [{ parentCategory: pObjId }, { categoryId: pObjId }];
+        if (matchFilter.$or) {
+          matchFilter.$and = [{ $or: matchFilter.$or }, { $or: parentFilter }];
+          delete matchFilter.$or;
+        } else {
+          matchFilter.$or = parentFilter;
+        }
+      } else {
+        matchFilter.parentCategoryName = new RegExp(`^${filterParentId}$`, 'i');
+      }
     }
 
     let sortObj = { name: 1 };
@@ -147,20 +167,24 @@ class CategoryService {
       }
     }
 
-    if (categoryData.parentCategory && categoryData.parentCategory !== 'null' && categoryData.parentCategory !== '') {
-      if (categoryData.parentCategory.toString() === id.toString()) {
+    const parentId = categoryData.categoryId !== undefined ? categoryData.categoryId : categoryData.parentCategory;
+    if (parentId && parentId !== 'null' && parentId !== '') {
+      if (parentId.toString() === id.toString()) {
         throw new ConflictError('A category cannot be its own parent');
       }
-      const parent = await categoryRepository.findById(categoryData.parentCategory);
+      const parent = await categoryRepository.findById(parentId);
       if (parent) {
         categoryData.parentCategory = parent._id;
+        categoryData.categoryId = parent._id;
         categoryData.parentCategoryName = parent.name;
       } else {
         categoryData.parentCategory = null;
+        categoryData.categoryId = null;
         categoryData.parentCategoryName = '';
       }
-    } else if (categoryData.parentCategory === null || categoryData.parentCategory === '' || categoryData.parentCategory === 'null') {
+    } else if (parentId === null || parentId === '' || parentId === 'null') {
       categoryData.parentCategory = null;
+      categoryData.categoryId = null;
       categoryData.parentCategoryName = '';
     }
 

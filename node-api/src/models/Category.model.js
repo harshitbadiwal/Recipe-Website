@@ -29,6 +29,12 @@ const categorySchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    categoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Category',
+      default: null,
+      index: true,
+    },
     parentCategoryName: {
       type: String,
       default: '',

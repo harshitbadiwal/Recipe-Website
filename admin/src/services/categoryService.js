@@ -220,6 +220,23 @@ export const categoryService = {
       return [];
     }
   },
+
+  // Sub-Categories API helpers
+  getSubCategories: async (params = {}) => {
+    return categoryService.getAllCategories({ ...params, type: 'subcategory' });
+  },
+
+  createSubCategory: async (subCategoryData, imageFile) => {
+    return categoryService.createCategory(subCategoryData, imageFile);
+  },
+
+  updateSubCategory: async (id, subCategoryData, imageFile) => {
+    return categoryService.updateCategory(id, subCategoryData, imageFile);
+  },
+
+  deleteSubCategory: async (id) => {
+    return categoryService.deleteCategory(id);
+  },
 };
 
 export default categoryService;

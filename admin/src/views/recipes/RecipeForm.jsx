@@ -77,6 +77,8 @@ const RecipeForm = () => {
   const [servings, setServings] = useState('');
   const [difficulty, setDifficulty] = useState('');
 
+  const isLoadedRef = React.useRef(false);
+
   // Category & Subcategory Removal Handlers
   const handleRemoveCategory = (catToRemove) => {
     setSelectedCategories((prev) => {
@@ -88,21 +90,13 @@ const RecipeForm = () => {
     });
   };
 
-  const handleClearAllCategories = () => {
-    setSelectedCategories([]);
-  };
-
   const handleRemoveSubCategory = (subCatToRemove) => {
     setSelectedSubCategories((prev) => prev.filter((sc) => sc !== subCatToRemove));
   };
 
-  const handleClearAllSubCategories = () => {
-    setSelectedSubCategories([]);
-  };
-
-  // Top-Level Categories Memo (categories without parentCategory)
+  // Top-Level Categories Memo (categories without parentCategory or categoryId)
   const topLevelCategoryOptions = React.useMemo(() => {
-    const rootCats = (categories || []).filter((c) => !c.parentCategory);
+    const rootCats = (categories || []).filter((c) => !c.parentCategory && !c.categoryId);
     const baseList = rootCats.length > 0 ? rootCats : categories || [];
     const names = new Set(baseList.map((c) => (c.name || '').toLowerCase()));
     const extras = selectedCategories.filter((c) => !names.has((c || '').toLowerCase()));
@@ -112,31 +106,62 @@ const RecipeForm = () => {
     ];
   }, [categories, selectedCategories]);
 
-  // Subcategories Memo (categories with parentCategory or matching selectedCategories)
+  // Subcategories Memo: ONLY shows subcategories on the basis of selected categories
   const subCategoryOptions = React.useMemo(() => {
-    const subCats = (categories || []).filter((c) => Boolean(c.parentCategory));
-    let matched = subCats;
-    if (selectedCategories.length > 0) {
-      const selLower = selectedCategories.map((c) => c.toLowerCase());
-      const filtered = subCats.filter((sc) => {
-        const pName = (
-          sc.parentCategoryName ||
-          (typeof sc.parentCategory === 'object' ? sc.parentCategory?.name : '') ||
-          ''
-        ).toLowerCase();
-        return selLower.includes(pName);
-      });
-      if (filtered.length > 0) {
-        matched = filtered;
-      }
+    if (!selectedCategories || selectedCategories.length === 0) {
+      return [];
     }
-    const names = new Set(matched.map((s) => (s.name || '').toLowerCase()));
-    const extras = selectedSubCategories.filter((s) => !names.has((s || '').toLowerCase()));
-    return [
-      ...matched,
-      ...extras.map((name) => ({ _id: `custom-sub-${name}`, name, isUnlisted: true })),
-    ];
-  }, [categories, selectedCategories, selectedSubCategories]);
+
+    const selLower = selectedCategories.map((c) => String(c).toLowerCase().trim());
+
+    // Find the category objects for the selected category names/IDs/slugs
+    const selectedCatObjs = (categories || []).filter((c) => {
+      const name = String(c.name || '').toLowerCase().trim();
+      const slug = String(c.slug || '').toLowerCase().trim();
+      const id = String(c._id || '').toLowerCase().trim();
+      return selLower.includes(name) || selLower.includes(slug) || selLower.includes(id);
+    });
+
+    const selectedIds = new Set(selectedCatObjs.map((c) => String(c._id || '')));
+    const selectedSlugs = new Set(selectedCatObjs.map((c) => String(c.slug || '').toLowerCase()));
+    const selectedNames = new Set(selectedCatObjs.map((c) => String(c.name || '').toLowerCase()));
+
+    // Filter categories for subcategories whose parentCategory or categoryId matches
+    const matched = (categories || []).filter((c) => {
+      const parent = c.parentCategory || c.categoryId;
+      if (!parent) return false;
+
+      const parentId = String(typeof parent === 'object' ? parent?._id || '' : parent);
+      const parentSlug = String(typeof parent === 'object' ? parent?.slug || '' : '').toLowerCase();
+      const parentName = String(
+        c.parentCategoryName || (typeof parent === 'object' ? parent?.name || '' : '')
+      ).toLowerCase();
+
+      return (
+        selectedIds.has(parentId) ||
+        selectedSlugs.has(parentSlug) ||
+        selectedNames.has(parentName) ||
+        selLower.includes(parentName)
+      );
+    });
+
+    return matched;
+  }, [categories, selectedCategories]);
+
+  // When selectedCategories changes, automatically prune subcategories that no longer belong to selected categories
+  React.useEffect(() => {
+    if (!isLoadedRef.current) return;
+    if (selectedCategories.length === 0) {
+      if (selectedSubCategories.length > 0) {
+        setSelectedSubCategories([]);
+      }
+    } else {
+      const validNames = new Set(subCategoryOptions.map((s) => s.name.toLowerCase()));
+      setSelectedSubCategories((prev) =>
+        prev.filter((name) => validNames.has(String(name).toLowerCase()))
+      );
+    }
+  }, [selectedCategories, subCategoryOptions]);
 
   // Scheduled Posting State
   const [isScheduled, setIsScheduled] = useState(false);
@@ -271,6 +296,7 @@ const RecipeForm = () => {
         setErrorMsg(err.message || 'Failed to fetch recipe details');
       } finally {
         setLoading(false);
+        isLoadedRef.current = true;
       }
     };
     init();
@@ -671,86 +697,25 @@ const RecipeForm = () => {
                         <FormHelperText error>{fieldErrors.categories}</FormHelperText>
                       )}
                     </FormControl>
-
-                    {/* Dedicated removable category tags list below input */}
-                    {selectedCategories.length > 0 && (
-                      <Box
-                        sx={{
-                          mt: 1.5,
-                          p: 1.5,
-                          borderRadius: '10px',
-                          bgcolor: (theme) =>
-                            theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : '#f8f9fa',
-                          border: '1px dashed',
-                          borderColor: (theme) =>
-                            theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)',
-                        }}
-                      >
-                        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                          <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                            Assigned Categories ({selectedCategories.length})
-                          </Typography>
-                          <Button
-                            size="small"
-                            color="error"
-                            variant="text"
-                            onClick={handleClearAllCategories}
-                            startIcon={<IconTrash size={14} />}
-                            sx={{
-                              fontSize: '0.75rem',
-                              textTransform: 'none',
-                              py: 0.2,
-                              px: 0.8,
-                              minWidth: 'auto',
-                              '&:hover': { bgcolor: 'rgba(244, 67, 54, 0.08)' },
-                            }}
-                          >
-                            Remove All
-                          </Button>
-                        </Stack>
-
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.8 }}>
-                          {selectedCategories.map((catName) => (
-                            <Tooltip key={catName} title="Click to remove category">
-                              <Chip
-                                label={catName}
-                                size="small"
-                                color="primary"
-                                variant="outlined"
-                                onDelete={() => handleRemoveCategory(catName)}
-                                deleteIcon={<IconTrash size={14} />}
-                                sx={{
-                                  fontWeight: 500,
-                                  borderRadius: '6px',
-                                  transition: 'all 0.2s ease',
-                                  '& .MuiChip-deleteIcon': {
-                                    color: 'error.main',
-                                    '&:hover': {
-                                      color: 'error.dark',
-                                    },
-                                  },
-                                  '&:hover': {
-                                    borderColor: 'error.main',
-                                    bgcolor: 'rgba(244, 67, 54, 0.04)',
-                                  },
-                                }}
-                              />
-                            </Tooltip>
-                          ))}
-                        </Box>
-                      </Box>
-                    )}
                   </Grid>
 
-                  {/* Subcategory Selection */}
+                  {/* Subcategory Selection (Dynamic based on selected category) */}
                   <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth>
-                      <InputLabel id="subcategory-select-label">Subcategories (Select Multiple)</InputLabel>
+                    <FormControl fullWidth disabled={selectedCategories.length === 0}>
+                      <InputLabel id="subcategory-select-label">
+                        {selectedCategories.length === 0
+                          ? 'Subcategories (Select Category First)'
+                          : 'Subcategories (Select Multiple)'}
+                      </InputLabel>
                       <Select
                         labelId="subcategory-select-label"
                         multiple
                         value={selectedSubCategories}
-                        label="Subcategories (Select Multiple)"
+                        label={
+                          selectedCategories.length === 0
+                            ? 'Subcategories (Select Category First)'
+                            : 'Subcategories (Select Multiple)'
+                        }
                         onChange={(e) => {
                           const val = e.target.value;
                           setSelectedSubCategories(typeof val === 'string' ? val.split(',') : val);
@@ -785,9 +750,13 @@ const RecipeForm = () => {
                           </Box>
                         )}
                       >
-                        {subCategoryOptions.length === 0 ? (
+                        {selectedCategories.length === 0 ? (
                           <MenuItem disabled value="">
-                            <em>No subcategories configured yet</em>
+                            <em>Please select a category first</em>
+                          </MenuItem>
+                        ) : subCategoryOptions.length === 0 ? (
+                          <MenuItem disabled value="">
+                            <em>No subcategories configured for {selectedCategories.join(', ')}</em>
                           </MenuItem>
                         ) : (
                           subCategoryOptions.map((sc) => {
@@ -810,8 +779,6 @@ const RecipeForm = () => {
                                     secondary={
                                       sc.parentCategoryName
                                         ? `Parent: ${sc.parentCategoryName}`
-                                        : sc.isUnlisted
-                                        ? 'Custom / Unlisted'
                                         : undefined
                                     }
                                     primaryTypographyProps={{
@@ -850,76 +817,14 @@ const RecipeForm = () => {
                           })
                         )}
                       </Select>
+                      <FormHelperText>
+                        {selectedCategories.length === 0
+                          ? 'Select a category above to unlock available subcategories'
+                          : subCategoryOptions.length === 0
+                          ? `No subcategories configured under ${selectedCategories.join(', ')}`
+                          : `Choose subcategories under ${selectedCategories.join(', ')}`}
+                      </FormHelperText>
                     </FormControl>
-
-                    {/* Dedicated removable subcategory tags list below input */}
-                    {selectedSubCategories.length > 0 && (
-                      <Box
-                        sx={{
-                          mt: 1.5,
-                          p: 1.5,
-                          borderRadius: '10px',
-                          bgcolor: (theme) =>
-                            theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : '#f8f9fa',
-                          border: '1px dashed',
-                          borderColor: (theme) =>
-                            theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)',
-                        }}
-                      >
-                        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                          <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                            Assigned Subcategories ({selectedSubCategories.length})
-                          </Typography>
-                          <Button
-                            size="small"
-                            color="error"
-                            variant="text"
-                            onClick={handleClearAllSubCategories}
-                            startIcon={<IconTrash size={14} />}
-                            sx={{
-                              fontSize: '0.75rem',
-                              textTransform: 'none',
-                              py: 0.2,
-                              px: 0.8,
-                              minWidth: 'auto',
-                              '&:hover': { bgcolor: 'rgba(244, 67, 54, 0.08)' },
-                            }}
-                          >
-                            Remove All
-                          </Button>
-                        </Stack>
-
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.8 }}>
-                          {selectedSubCategories.map((subName) => (
-                            <Tooltip key={subName} title="Click to remove subcategory">
-                              <Chip
-                                label={subName}
-                                size="small"
-                                color="secondary"
-                                variant="outlined"
-                                onDelete={() => handleRemoveSubCategory(subName)}
-                                deleteIcon={<IconTrash size={14} />}
-                                sx={{
-                                  fontWeight: 500,
-                                  borderRadius: '6px',
-                                  transition: 'all 0.2s ease',
-                                  '& .MuiChip-deleteIcon': {
-                                    color: 'error.main',
-                                    '&:hover': {
-                                      color: 'error.dark',
-                                    },
-                                  },
-                                  '&:hover': {
-                                    borderColor: 'error.main',
-                                    bgcolor: 'rgba(244, 67, 54, 0.04)',
-                                  },
-                                }}
-                              />
-                            </Tooltip>
-                          ))}
-                        </Box>
-                      </Box>
-                    )}
                   </Grid>
 
                   <Grid item xs={12}>

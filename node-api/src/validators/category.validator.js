@@ -16,6 +16,7 @@ const createCategoryValidator = [
   body('slug').optional().trim(),
   body('description').optional().trim(),
   body('parentCategory').optional().custom((val) => val === '' || val === null || val === 'null' || /^[0-9a-fA-F]{24}$/.test(val)).withMessage('Invalid parent category ID'),
+  body('categoryId').optional().custom((val) => val === '' || val === null || val === 'null' || /^[0-9a-fA-F]{24}$/.test(val)).withMessage('Invalid category ID'),
   body('image').optional({ checkFalsy: true }).custom(validateImage),
   body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
@@ -26,6 +27,7 @@ const updateCategoryValidator = [
   body('slug').optional().trim(),
   body('description').optional().trim(),
   body('parentCategory').optional().custom((val) => val === '' || val === null || val === 'null' || /^[0-9a-fA-F]{24}$/.test(val)).withMessage('Invalid parent category ID'),
+  body('categoryId').optional().custom((val) => val === '' || val === null || val === 'null' || /^[0-9a-fA-F]{24}$/.test(val)).withMessage('Invalid category ID'),
   body('image').optional({ checkFalsy: true }).custom(validateImage),
   body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];

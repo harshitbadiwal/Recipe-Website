@@ -17,6 +17,7 @@ router.use(authenticate, authorize(ROLES.ADMIN));
 
 router.use('/recipes', recipeRoutes);
 router.use('/categories', categoryRoutes);
+router.use('/subcategories', categoryRoutes);
 router.use('/blogs', blogRoutes);
 router.use('/users', userRoutes);
 router.use('/comments', commentRoutes);

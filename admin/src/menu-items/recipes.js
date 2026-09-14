@@ -1,4 +1,4 @@
-import { IconToolsKitchen2, IconCategory, IconArticle } from '@tabler/icons-react';
+import { IconToolsKitchen2, IconCategory, IconArticle, IconHierarchy } from '@tabler/icons-react';
 
 const recipes = {
   id: 'recipes-group',
@@ -19,6 +19,14 @@ const recipes = {
       type: 'item',
       url: '/categories',
       icon: IconCategory,
+      breadcrumbs: true,
+    },
+    {
+      id: 'subcategories-all',
+      title: 'Sub-Categories',
+      type: 'item',
+      url: '/subcategories',
+      icon: IconHierarchy,
       breadcrumbs: true,
     },
     {

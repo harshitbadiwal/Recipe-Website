@@ -9,6 +9,7 @@ const RecipeList = Loadable(lazy(() => import('../views/recipes/RecipeList')));
 const RecipeForm = Loadable(lazy(() => import('../views/recipes/RecipeForm')));
 const RecipeDetail = Loadable(lazy(() => import('../views/recipes/RecipeDetail')));
 const CategoryList = Loadable(lazy(() => import('../views/categories/CategoryList')));
+const SubCategoryList = Loadable(lazy(() => import('../views/categories/SubCategoryList')));
 const BlogList = Loadable(lazy(() => import('../views/blogs/BlogList')));
 const BlogForm = Loadable(lazy(() => import('../views/blogs/BlogForm')));
 const BlogDetail = Loadable(lazy(() => import('../views/blogs/BlogDetail')));
@@ -52,6 +53,10 @@ const MainRoutes = {
     {
       path: 'categories',
       element: <CategoryList />,
+    },
+    {
+      path: 'subcategories',
+      element: <SubCategoryList />,
     },
     {
       path: 'blogs',
