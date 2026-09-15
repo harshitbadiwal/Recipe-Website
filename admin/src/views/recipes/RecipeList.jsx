@@ -170,6 +170,36 @@ const RecipeList = () => {
     }
   };
 
+  const handleTogglePublish = async (recipe, e) => {
+    if (e) e.stopPropagation();
+    const nextStatus = recipe.isPublished === false ? true : false;
+    try {
+      await recipeService.updateRecipe(recipe._id, { isPublished: nextStatus });
+      setRecipes((prev) =>
+        prev.map((r) => (r._id === recipe._id ? { ...r, isPublished: nextStatus } : r))
+      );
+      dispatch(
+        openSnackbar({
+          open: true,
+          message: `Recipe "${recipe.title}" is now ${nextStatus ? 'Published' : 'saved as Draft'}.`,
+          variant: 'alert',
+          alert: { color: 'success' },
+          close: true,
+        })
+      );
+    } catch (err) {
+      dispatch(
+        openSnackbar({
+          open: true,
+          message: err.message || 'Failed to update recipe status',
+          variant: 'alert',
+          alert: { color: 'error' },
+          close: true,
+        })
+      );
+    }
+  };
+
   const getCategoryName = (cat, fallbackName) => {
     if (!cat && !fallbackName) return 'General';
     if (typeof cat === 'string') return cat;
@@ -561,12 +591,24 @@ const RecipeList = () => {
                             />
                           </Tooltip>
                         ) : (
-                          <Chip
-                            size="small"
-                            label={recipe.isPublished !== false ? 'Published' : 'Draft'}
-                            color={recipe.isPublished !== false ? 'success' : 'default'}
-                            sx={{ fontWeight: 700, fontSize: '0.72rem' }}
-                          />
+                          <Tooltip title={recipe.isPublished !== false ? 'Click to convert to Draft' : 'Click to convert to Published'}>
+                            <Chip
+                              size="small"
+                              label={recipe.isPublished !== false ? 'Published' : 'Draft'}
+                              color={recipe.isPublished !== false ? 'success' : 'default'}
+                              onClick={(e) => handleTogglePublish(recipe, e)}
+                              sx={{
+                                fontWeight: 700,
+                                fontSize: '0.72rem',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                '&:hover': {
+                                  transform: 'scale(1.06)',
+                                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                                },
+                              }}
+                            />
+                          </Tooltip>
                         )}
                       </TableCell>
 

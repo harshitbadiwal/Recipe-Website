@@ -1,9 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import { useTheme } from '@mui/material/styles';
-import { Avatar, Box, ButtonBase, Typography } from '@mui/material';
-import { IconMenu2, IconChefHat } from '@tabler/icons-react';
+import { Avatar, Box, ButtonBase } from '@mui/material';
+import { IconMenu2 } from '@tabler/icons-react';
 import ProfileSection from './ProfileSection';
+import Logo from '../../../ui-component/Logo';
+import { Link } from 'react-router-dom';
 
 const Header = ({ handleLeftDrawerToggle }) => {
   const theme = useTheme();
@@ -13,7 +15,7 @@ const Header = ({ handleLeftDrawerToggle }) => {
       {/* logo & toggler button */}
       <Box
         sx={{
-          width: 228,
+          width: 240,
           display: 'flex',
           [theme.breakpoints.down('md')]: {
             width: 'auto',
@@ -21,28 +23,18 @@ const Header = ({ handleLeftDrawerToggle }) => {
           alignItems: 'center',
         }}
       >
-        <Box component="span" sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-          <Avatar
-            variant="rounded"
-            sx={{
-              bgcolor: theme.palette.primary.main,
-              color: '#ffffff',
-              mr: 1.5,
-              width: 36,
-              height: 36,
-              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.35)',
-            }}
-          >
-            <IconChefHat stroke={2} size="22px" />
-          </Avatar>
-          <Box>
-            <Typography variant="h4" sx={{ fontWeight: 800, color: theme.palette.primary.main, letterSpacing: '-0.5px' }}>
-              FOODIE<span style={{ color: theme.palette.secondary.main }}>ADMIN</span>
-            </Typography>
-            <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500, fontSize: '0.65rem' }}>
-              RECIPE & PORTAL HUB
-            </Typography>
-          </Box>
+        <Box
+          component={Link}
+          to="/recipes"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            flexGrow: 1,
+            textDecoration: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          <Logo size={38} />
         </Box>
         <ButtonBase sx={{ borderRadius: '12px', overflow: 'hidden', ml: { xs: 2, md: 3 } }}>
           <Avatar

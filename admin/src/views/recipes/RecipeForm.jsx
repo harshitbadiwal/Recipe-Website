@@ -38,6 +38,8 @@ import {
   IconToolsKitchen2,
   IconSparkles,
   IconChefHat,
+  IconFileText,
+  IconSend,
 } from '@tabler/icons-react';
 import recipeService from '../../services/recipeService';
 import categoryService from '../../services/categoryService';
@@ -227,6 +229,7 @@ const RecipeForm = () => {
             setTitle(data.title || '');
             setSlug(data.slug || '');
             setIsSlugManual(true);
+            setDescription(data.description || '');
             
             let catNames = [];
             if (Array.isArray(data.categories) && data.categories.length > 0) {
@@ -366,8 +369,10 @@ const RecipeForm = () => {
   };
 
   // Form Submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e, publishOverride = null) => {
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
     const newErrors = {};
 
     if (!title.trim()) {
@@ -421,6 +426,15 @@ const RecipeForm = () => {
     setErrorMsg('');
     setFieldErrors({});
 
+    let finalIsPublished = isPublished;
+    if (publishOverride !== null && publishOverride !== undefined) {
+      finalIsPublished = Boolean(publishOverride);
+    } else if (isEditMode && !isPublished) {
+      // If editing a draft and clicking Update, convert status to published
+      finalIsPublished = true;
+    }
+    setIsPublished(finalIsPublished);
+
     const primaryCategory = selectedCategories[0] || '';
     const primarySubCategory = selectedSubCategories[0] || '';
 
@@ -446,7 +460,7 @@ const RecipeForm = () => {
       instructions: cleanInstructions,
       nutrition,
       isFeatured,
-      isPublished,
+      isPublished: finalIsPublished,
       isScheduled,
       is_scheduled: isScheduled,
       is_posting: isScheduled,
@@ -459,10 +473,11 @@ const RecipeForm = () => {
     try {
       if (isEditMode) {
         await recipeService.updateRecipe(id, recipePayload, imageFile);
+        const statusMsg = finalIsPublished ? 'published' : 'saved as draft';
         dispatch(
           openSnackbar({
             open: true,
-            message: 'Recipe updated successfully!',
+            message: `Recipe updated and ${statusMsg} successfully!`,
             variant: 'alert',
             alert: { color: 'success' },
             close: true,
@@ -470,10 +485,11 @@ const RecipeForm = () => {
         );
       } else {
         await recipeService.createRecipe(recipePayload, imageFile);
+        const statusMsg = finalIsPublished ? 'published' : 'saved as draft';
         dispatch(
           openSnackbar({
             open: true,
-            message: 'Recipe created successfully!',
+            message: `Recipe created and ${statusMsg} successfully!`,
             variant: 'alert',
             alert: { color: 'success' },
             close: true,
@@ -523,15 +539,39 @@ const RecipeForm = () => {
           </Box>
         </Stack>
 
-        <Stack direction="row" spacing={1.5}>
-          <Button variant="outlined" color="inherit" onClick={() => navigate('/recipes')}>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Button variant="outlined" color="inherit" onClick={() => navigate('/recipes')} disabled={saving}>
             Cancel
           </Button>
+
+          {/* Save as Draft Button (available in both Add and Edit modes) */}
+          <Button
+            variant="outlined"
+            color="inherit"
+            startIcon={<IconFileText size="18px" />}
+            onClick={(e) => handleSubmit(e, false)}
+            disabled={saving}
+            sx={{
+              fontWeight: 600,
+              borderRadius: '10px',
+              border: '1px solid #cbd5e1',
+              bgcolor: '#fff',
+              px: 2.2,
+              '&:hover': {
+                bgcolor: '#f1f5f9',
+                borderColor: '#94a3b8',
+              },
+            }}
+          >
+            {saving ? 'Saving...' : isEditMode && !isPublished ? 'Save Draft' : 'Save as Draft'}
+          </Button>
+
+          {/* Primary Action Button: Publish Recipe / Update Recipe */}
           <Button
             variant="contained"
             color="primary"
-            startIcon={saving ? <CircularProgress size={18} color="inherit" /> : <IconDeviceFloppy size="18px" />}
-            onClick={handleSubmit}
+            startIcon={saving ? <CircularProgress size={18} color="inherit" /> : <IconSend size="18px" />}
+            onClick={(e) => handleSubmit(e, true)}
             disabled={saving}
             sx={{
               fontWeight: 700,
@@ -540,7 +580,13 @@ const RecipeForm = () => {
               px: 3,
             }}
           >
-            {saving ? 'Saving...' : isEditMode ? 'Update Recipe' : 'Publish Recipe'}
+            {saving
+              ? 'Saving...'
+              : isEditMode
+              ? !isPublished
+                ? 'Publish Recipe'
+                : 'Update Recipe'
+              : 'Publish Recipe'}
           </Button>
         </Stack>
       </Stack>
@@ -1378,6 +1424,62 @@ const RecipeForm = () => {
                       </Box>
                     }
                   />
+                </Stack>
+              </Card>
+
+              {/* Bottom Form Actions Card */}
+              <Card sx={{ p: 2.5, borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} justifyContent="flex-end" alignItems="center">
+                  <Button
+                    fullWidth={false}
+                    variant="outlined"
+                    color="inherit"
+                    onClick={() => navigate('/recipes')}
+                    disabled={saving}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    startIcon={<IconFileText size="18px" />}
+                    onClick={(e) => handleSubmit(e, false)}
+                    disabled={saving}
+                    sx={{
+                      fontWeight: 600,
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      bgcolor: '#fff',
+                      px: 2.2,
+                      '&:hover': {
+                        bgcolor: '#f1f5f9',
+                        borderColor: '#94a3b8',
+                      },
+                    }}
+                  >
+                    {saving ? 'Saving...' : isEditMode && !isPublished ? 'Save Draft' : 'Save as Draft'}
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={saving ? <CircularProgress size={18} color="inherit" /> : <IconSend size="18px" />}
+                    onClick={(e) => handleSubmit(e, true)}
+                    disabled={saving}
+                    sx={{
+                      fontWeight: 700,
+                      borderRadius: '10px',
+                      boxShadow: '0 6px 16px rgba(225, 29, 72, 0.35)',
+                      px: 3,
+                    }}
+                  >
+                    {saving
+                      ? 'Saving...'
+                      : isEditMode
+                      ? !isPublished
+                        ? 'Publish Recipe'
+                        : 'Update Recipe'
+                      : 'Publish Recipe'}
+                  </Button>
                 </Stack>
               </Card>
             </Stack>

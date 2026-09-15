@@ -17,6 +17,15 @@ const parseJsonFields = (data) => {
       }
     }
   });
+  ['isPublished', 'isFeatured', 'isScheduled', 'is_scheduled', 'is_posting'].forEach((field) => {
+    if (result[field] !== undefined) {
+      if (result[field] === 'true' || result[field] === true || result[field] === 1 || result[field] === '1') {
+        result[field] = true;
+      } else if (result[field] === 'false' || result[field] === false || result[field] === 0 || result[field] === '0') {
+        result[field] = false;
+      }
+    }
+  });
   return result;
 };
 

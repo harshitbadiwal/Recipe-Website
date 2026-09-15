@@ -26,6 +26,7 @@ import * as Yup from 'yup';
 import { IconEye, IconEyeOff, IconChefHat, IconLock, IconMail } from '@tabler/icons-react';
 import useAuth from '../../hooks/useAuth';
 import AnimateButton from '../../ui-component/extended/AnimateButton';
+import Logo from '../../ui-component/Logo';
 
 const Login = () => {
   const theme = useTheme();
@@ -66,22 +67,13 @@ const Login = () => {
         }}
       >
         <Stack spacing={2} alignItems="center" sx={{ mb: 4, textAlign: 'center' }}>
-          <Avatar
-            sx={{
-              bgcolor: theme.palette.primary.main,
-              width: 54,
-              height: 54,
-              boxShadow: '0 8px 16px rgba(99, 102, 241, 0.3)',
-            }}
-          >
-            <IconChefHat size="32px" color="#fff" />
-          </Avatar>
+          <Logo size={64} showSubtitle={false} sx={{ flexDirection: 'column', gap: 1 }} />
           <Box>
-            <Typography variant="h2" sx={{ fontWeight: 800, color: theme.palette.text.primary, letterSpacing: '-0.5px' }}>
-              Welcome to Foodie<span style={{ color: theme.palette.secondary.main }}>Admin</span>
+            <Typography variant="h3" sx={{ fontWeight: 800, color: theme.palette.text.primary, letterSpacing: '-0.5px' }}>
+              Culinary Admin Console
             </Typography>
             <Typography variant="body2" color="textSecondary" sx={{ mt: 0.5 }}>
-              Enter your credentials to manage culinary operations
+              Enter your credentials to manage recipes and culinary operations
             </Typography>
           </Box>
         </Stack>

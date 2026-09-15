@@ -140,8 +140,16 @@ class RecipeService {
 
     let scheduledDate = recipeData.scheduledDate ?? recipeData.scheduled_date ?? (existingRecipe ? existingRecipe.scheduledDate : '') ?? '';
     let scheduledTime = recipeData.scheduledTime ?? recipeData.scheduled_time ?? (existingRecipe ? existingRecipe.scheduledTime : '') ?? '';
-    let scheduledAt = null;
-    let isPublished = recipeData.isPublished !== undefined ? Boolean(recipeData.isPublished) : (existingRecipe ? existingRecipe.isPublished : true);
+    let isPublished;
+    if (recipeData.isPublished !== undefined && recipeData.isPublished !== null) {
+      if (typeof recipeData.isPublished === 'string') {
+        isPublished = recipeData.isPublished === 'true' || recipeData.isPublished === '1';
+      } else {
+        isPublished = Boolean(recipeData.isPublished);
+      }
+    } else {
+      isPublished = existingRecipe ? existingRecipe.isPublished : true;
+    }
 
     if (isScheduled && scheduledDate) {
       const timeStr = scheduledTime || '00:00';
