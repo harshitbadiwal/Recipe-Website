@@ -151,6 +151,7 @@ class RecipeService {
       isPublished = existingRecipe ? existingRecipe.isPublished : true;
     }
 
+    let scheduledAt = null;
     if (isScheduled && scheduledDate) {
       const timeStr = scheduledTime || '00:00';
       scheduledAt = new Date(`${scheduledDate}T${timeStr}:00`);

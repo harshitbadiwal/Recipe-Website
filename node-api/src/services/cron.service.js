@@ -1,4 +1,9 @@
-const cron = require('node-cron');
+let cron;
+try {
+  cron = require('node-cron');
+} catch (e) {
+  cron = null;
+}
 const Recipe = require('../models/Recipe.model');
 
 /**
@@ -38,6 +43,10 @@ const checkAndPublishScheduledRecipes = async () => {
  * Initialize the recurring cron schedule (runs every 5 minutes)
  */
 const initScheduledRecipeCron = () => {
+  if (!cron) {
+    console.warn('⚠️ [Cron Job] node-cron module not available. Cron publisher skipped.');
+    return;
+  }
   // Schedule to run every 5 minutes: '*/5 * * * *'
   cron.schedule('* * * * *', async () => {
     await checkAndPublishScheduledRecipes();
