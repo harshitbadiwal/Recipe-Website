@@ -2,7 +2,7 @@ import axios from 'axios';
 import config from '../config';
 
 const api = axios.create({
-  baseURL: config.apiBaseUrl || 'https://recipe-website-0msc.onrender.com/api/v1',
+  baseURL: config.apiBaseUrl || 'https://recipe-website-ja3v.onrender.com/api/v1',
   timeout: 35000,
 });
 
