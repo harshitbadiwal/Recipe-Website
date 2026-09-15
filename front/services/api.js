@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://recipe-website-ja3v.onrender.com/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://recipe-website-0msc.onrender.com/api/v1';
 
 /**
  * Base fetcher with ISR caching and error tolerance.
