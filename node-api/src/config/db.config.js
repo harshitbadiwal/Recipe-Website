@@ -43,20 +43,13 @@ const connectDB = async () => {
   try {
     logger.info('Starting fallback In-Memory MongoDB instance (MongoMemoryServer)...');
     const { MongoMemoryServer } = require('mongodb-memory-server');
-    memServer = await MongoMemoryServer.create({
-      binary: {
-        version: '7.0.14',
-      },
-    });
+    memServer = await MongoMemoryServer.create();
     const mongoUri = memServer.getUri();
     const conn = await mongoose.connect(mongoUri);
     logger.info(`✅ Connected to In-Memory MongoDB at ${mongoUri}`);
     return conn;
   } catch (memErr) {
     logger.error('❌ Critical: Failed to start any database engine:', memErr.message);
-    if (process.env.RENDER || process.env.NODE_ENV === 'production') {
-      logger.error('👉 ACTION REQUIRED ON RENDER: Please add DATABASE_URL or MONGODB_URI in your Render Dashboard -> Environment tab with your MongoDB Atlas connection string.');
-    }
     throw memErr;
   }
 };
