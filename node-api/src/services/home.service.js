@@ -14,24 +14,17 @@ class HomeService {
     const heroSlides = [
       {
         id: 1,
-        image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1400&h=600&fit=crop',
+        image: '/Gemini_Generated_Image_3xpagu3xpagu3xpa_compressed.webp',
         title: 'Delicious Indian Recipes',
-        subtitle: 'Discover authentic flavors',
+        subtitle: 'Discover authentic flavors & chef-crafted delicacies',
         ctaText: 'Explore Recipes',
       },
       {
         id: 2,
-        image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=1400&h=600&fit=crop',
+        image: '/Gemini_Generated_Image_51wxoi51wxoi51wx_compressed.webp',
         title: 'Master Chef Specials',
-        subtitle: 'Learn from the experts',
-        ctaText: 'Watch Videos',
-      },
-      {
-        id: 3,
-        image: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=1400&h=600&fit=crop',
-        title: 'Quick & Easy Meals',
-        subtitle: 'Cook delicious food in minutes',
-        ctaText: 'Get Started',
+        subtitle: 'Learn authentic cooking techniques and secret spices',
+        ctaText: 'Explore Recipes',
       },
     ];
 

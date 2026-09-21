@@ -220,7 +220,7 @@ export default async function CategoryRecipesPage({ params }) {
                   <div className="category-recipe-card">
                     <div className="category-recipe-image-wrapper">
                       <img
-                        src={recipe.image}
+                        src={recipe.image || ''}
                         alt={recipe.title}
                         className="category-recipe-image"
                         loading="lazy"

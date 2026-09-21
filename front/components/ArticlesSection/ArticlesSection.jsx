@@ -36,7 +36,7 @@ export default async function ArticlesSection({ showHeader = true, showViewAll =
             const image =
               article.featuredImage ||
               article.image ||
-              'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=600&h=400&fit=crop'
+              ''
             const description = article.excerpt || article.description || article.content?.slice(0, 100)
             const date = article.publishedAt
               ? new Date(article.publishedAt).toLocaleDateString('en-US', {
@@ -55,7 +55,11 @@ export default async function ArticlesSection({ showHeader = true, showViewAll =
               >
                 <article className="article-card">
                   <div className="article-image-wrapper">
-                    <img src={image} alt={article.title} className="article-image" loading="lazy" />
+                    {image ? (
+                      <img src={image} alt={article.title} className="article-image" loading="lazy" />
+                    ) : (
+                      <div className="article-image-placeholder" style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)' }} />
+                    )}
                     <span className="article-date-badge">📅 {date}</span>
                   </div>
                   <div className="article-content">

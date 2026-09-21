@@ -30,7 +30,13 @@ export default async function CategorySection() {
                 <div className="category-card">
                   <div className="category-image-wrapper">
                     <div className="category-glow-ring"></div>
-                    <img src={category.image} alt={category.name} className="category-image" loading="lazy" />
+                    {category.image && category.image.trim() !== '' ? (
+                      <img src={category.image} alt={category.name} className="category-image" loading="lazy" />
+                    ) : (
+                      <div className="category-placeholder-icon" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}>
+                        🍳
+                      </div>
+                    )}
                   </div>
                   <h3 className="category-name">{category.name}</h3>
                   <span className="category-explore-tag">Discover →</span>

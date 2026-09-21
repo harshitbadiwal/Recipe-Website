@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -40,6 +40,7 @@ import {
   IconChefHat,
   IconFileText,
   IconSend,
+  IconGripVertical,
 } from '@tabler/icons-react';
 import recipeService from '../../services/recipeService';
 import categoryService from '../../services/categoryService';
@@ -368,6 +369,36 @@ const RecipeForm = () => {
     setInstructions(instructions.filter((_, i) => i !== index));
   };
 
+  // ── Drag-and-drop refs ──────────────────────────────────────────
+  const ingDragItem = useRef(null);
+  const ingDragOver = useRef(null);
+  const instDragItem = useRef(null);
+  const instDragOver = useRef(null);
+
+  // Reorder ingredients after drag
+  const handleIngredientDragEnd = () => {
+    if (ingDragItem.current === null || ingDragOver.current === null) return;
+    if (ingDragItem.current === ingDragOver.current) return;
+    const next = [...ingredients];
+    const dragged = next.splice(ingDragItem.current, 1)[0];
+    next.splice(ingDragOver.current, 0, dragged);
+    ingDragItem.current = null;
+    ingDragOver.current = null;
+    setIngredients(next);
+  };
+
+  // Reorder instructions after drag
+  const handleInstructionDragEnd = () => {
+    if (instDragItem.current === null || instDragOver.current === null) return;
+    if (instDragItem.current === instDragOver.current) return;
+    const next = [...instructions];
+    const dragged = next.splice(instDragItem.current, 1)[0];
+    next.splice(instDragOver.current, 0, dragged);
+    instDragItem.current = null;
+    instDragOver.current = null;
+    setInstructions(next);
+  };
+
   // Form Submission
   const handleSubmit = async (e, publishOverride = null) => {
     if (e && e.preventDefault) {
@@ -426,8 +457,20 @@ const RecipeForm = () => {
     setErrorMsg('');
     setFieldErrors({});
 
+    let calculatedScheduledAt = null;
+    if (isScheduled && scheduledDate) {
+      const timeStr = scheduledTime || '00:00';
+      const localDate = new Date(`${scheduledDate}T${timeStr}:00`);
+      if (!isNaN(localDate.getTime())) {
+        calculatedScheduledAt = localDate.toISOString();
+      }
+    }
+
     let finalIsPublished = isPublished;
-    if (publishOverride !== null && publishOverride !== undefined) {
+    if (isScheduled && calculatedScheduledAt && new Date(calculatedScheduledAt) > new Date()) {
+      // When scheduling for future date & time, initial status is un-published until scheduled time arrives
+      finalIsPublished = false;
+    } else if (publishOverride !== null && publishOverride !== undefined) {
       finalIsPublished = Boolean(publishOverride);
     } else if (isEditMode && !isPublished) {
       // If editing a draft and clicking Update, convert status to published
@@ -462,10 +505,9 @@ const RecipeForm = () => {
       isFeatured,
       isPublished: finalIsPublished,
       isScheduled,
-      is_scheduled: isScheduled,
-      is_posting: isScheduled,
       scheduledDate,
       scheduledTime,
+      scheduledAt: calculatedScheduledAt,
       seoTitle: seoTitle.trim() || title.trim(),
       seoDescription: seoDescription.trim() || description.trim(),
     };
@@ -920,54 +962,92 @@ const RecipeForm = () => {
                     <Paper
                       key={idx}
                       variant="outlined"
-                      sx={{ p: 1.5, borderRadius: '10px', bgcolor: '#fafaf9', borderColor: fieldErrors.ingredients && !ing.item.trim() ? '#ef4444' : '#e2e8f0' }}
+                      draggable
+                      onDragStart={() => { ingDragItem.current = idx; }}
+                      onDragEnter={() => { ingDragOver.current = idx; }}
+                      onDragEnd={handleIngredientDragEnd}
+                      onDragOver={(e) => e.preventDefault()}
+                      sx={{
+                        p: 1.5,
+                        borderRadius: '10px',
+                        bgcolor: '#fafaf9',
+                        borderColor: fieldErrors.ingredients && !ing.item.trim() ? '#ef4444' : '#e2e8f0',
+                        cursor: 'grab',
+                        transition: 'box-shadow 0.2s ease, opacity 0.2s ease',
+                        '&:active': { cursor: 'grabbing', opacity: 0.85, boxShadow: '0 8px 24px rgba(0,0,0,0.12)' },
+                        '&[draggable="true"]:hover': { boxShadow: '0 4px 14px rgba(0,0,0,0.08)', borderColor: '#94a3b8' },
+                      }}
                     >
-                      <Grid container spacing={1.5} alignItems="center">
-                        <Grid item xs={12} sm={5}>
-                          <TextField
-                            fullWidth
-                            size="small"
-                            label={`Ingredient #${idx + 1} *`}
-                            placeholder="e.g. Basmati Rice"
-                            value={ing.item}
-                            onChange={(e) => {
-                              handleIngredientChange(idx, 'item', e.target.value);
-                              clearFieldError('ingredients');
-                            }}
-                            error={Boolean(fieldErrors.ingredients && !ing.item.trim())}
-                          />
+                      <Stack direction="row" spacing={1.5} alignItems="center">
+                        {/* Drag Handle */}
+                        <Tooltip title="Drag to reorder" placement="top">
+                          <Box sx={{ display: 'flex', alignItems: 'center', color: '#94a3b8', cursor: 'grab', px: 0.5, flexShrink: 0, '&:hover': { color: '#475569' } }}>
+                            <IconGripVertical size="20px" />
+                          </Box>
+                        </Tooltip>
+
+                        {/* Input Fields */}
+                        <Grid container spacing={1.5} alignItems="center" sx={{ flexGrow: 1 }}>
+                          <Grid item xs={12} sm={5}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              label={`Ingredient #${idx + 1} *`}
+                              placeholder="e.g. Basmati Rice"
+                              value={ing.item}
+                              onChange={(e) => {
+                                handleIngredientChange(idx, 'item', e.target.value);
+                                clearFieldError('ingredients');
+                              }}
+                              error={Boolean(fieldErrors.ingredients && !ing.item.trim())}
+                              onMouseDown={(e) => e.stopPropagation()}
+                            />
+                          </Grid>
+                          <Grid item xs={6} sm={3.5}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              label="Quantity"
+                              placeholder="e.g. 500g"
+                              value={ing.qty}
+                              onChange={(e) => handleIngredientChange(idx, 'qty', e.target.value)}
+                              onMouseDown={(e) => e.stopPropagation()}
+                            />
+                          </Grid>
+                          <Grid item xs={6} sm={3.5}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              label="Preparation Note"
+                              placeholder="e.g. soaked"
+                              value={ing.note}
+                              onChange={(e) => handleIngredientChange(idx, 'note', e.target.value)}
+                              onMouseDown={(e) => e.stopPropagation()}
+                            />
+                          </Grid>
                         </Grid>
-                        <Grid item xs={6} sm={3}>
-                          <TextField
-                            fullWidth
-                            size="small"
-                            label="Quantity"
-                            placeholder="e.g. 500g"
-                            value={ing.qty}
-                            onChange={(e) => handleIngredientChange(idx, 'qty', e.target.value)}
-                          />
-                        </Grid>
-                        <Grid item xs={5} sm={3}>
-                          <TextField
-                            fullWidth
-                            size="small"
-                            label="Preparation Note"
-                            placeholder="e.g. soaked"
-                            value={ing.note}
-                            onChange={(e) => handleIngredientChange(idx, 'note', e.target.value)}
-                          />
-                        </Grid>
-                        <Grid item xs={1} sm={1} sx={{ textAlign: 'right' }}>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            disabled={ingredients.length === 1}
-                            onClick={() => handleRemoveIngredient(idx)}
-                          >
-                            <IconTrash size="18px" />
-                          </IconButton>
-                        </Grid>
-                      </Grid>
+
+                        {/* Delete Button */}
+                        <IconButton
+                          size="small"
+                          color="error"
+                          disabled={ingredients.length === 1}
+                          onClick={() => handleRemoveIngredient(idx)}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          sx={{
+                            flexShrink: 0,
+                            color: ingredients.length === 1 ? '#cbd5e1' : '#ef4444',
+                            bgcolor: ingredients.length === 1 ? 'transparent' : 'rgba(239, 68, 68, 0.06)',
+                            p: 1,
+                            borderRadius: '8px',
+                            '&:hover': {
+                              bgcolor: 'rgba(239, 68, 68, 0.15)',
+                            },
+                          }}
+                        >
+                          <IconTrash size="18px" />
+                        </IconButton>
+                      </Stack>
                     </Paper>
                   ))}
                 </Stack>
@@ -999,42 +1079,81 @@ const RecipeForm = () => {
 
                 <Stack spacing={2}>
                   {instructions.map((step, idx) => (
-                    <Stack key={idx} direction="row" spacing={1.5} alignItems="flex-start">
-                      <Avatar
-                        sx={{
-                          width: 32,
-                          height: 32,
-                          bgcolor: theme.palette.primary.main,
-                          fontSize: '0.85rem',
-                          fontWeight: 700,
-                          mt: 1,
-                        }}
-                      >
-                        {idx + 1}
-                      </Avatar>
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={2}
-                        label={`Step ${idx + 1} *`}
-                        placeholder="Describe what to do in this cooking step..."
-                        value={step}
-                        onChange={(e) => {
-                          handleInstructionChange(idx, e.target.value);
-                          clearFieldError('instructions');
-                        }}
-                        error={Boolean(fieldErrors.instructions && !step.trim())}
-                      />
-                      <IconButton
-                        size="small"
-                        color="error"
-                        disabled={instructions.length === 1}
-                        onClick={() => handleRemoveInstruction(idx)}
-                        sx={{ mt: 1 }}
-                      >
-                        <IconTrash size="18px" />
-                      </IconButton>
-                    </Stack>
+                    <Paper
+                      key={idx}
+                      variant="outlined"
+                      draggable
+                      onDragStart={() => { instDragItem.current = idx; }}
+                      onDragEnter={() => { instDragOver.current = idx; }}
+                      onDragEnd={handleInstructionDragEnd}
+                      onDragOver={(e) => e.preventDefault()}
+                      sx={{
+                        p: 1.5,
+                        borderRadius: '12px',
+                        bgcolor: '#fafaf9',
+                        borderColor: '#e2e8f0',
+                        cursor: 'grab',
+                        transition: 'box-shadow 0.2s ease, opacity 0.2s ease',
+                        '&:active': { cursor: 'grabbing', opacity: 0.85, boxShadow: '0 8px 24px rgba(0,0,0,0.12)' },
+                        '&[draggable="true"]:hover': { boxShadow: '0 4px 14px rgba(0,0,0,0.08)', borderColor: '#94a3b8' },
+                      }}
+                    >
+                      <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                        {/* Drag Handle */}
+                        <Tooltip title="Drag to reorder" placement="top">
+                          <Box sx={{ display: 'flex', alignItems: 'center', color: '#94a3b8', cursor: 'grab', pt: 1.2, flexShrink: 0 }}>
+                            <IconGripVertical size="20px" />
+                          </Box>
+                        </Tooltip>
+                        <Avatar
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            bgcolor: theme.palette.primary.main,
+                            fontSize: '0.85rem',
+                            fontWeight: 700,
+                            mt: 1,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {idx + 1}
+                        </Avatar>
+                        <TextField
+                          fullWidth
+                          multiline
+                          rows={2}
+                          label={`Step ${idx + 1} *`}
+                          placeholder="Describe what to do in this cooking step..."
+                          value={step}
+                          onChange={(e) => {
+                            handleInstructionChange(idx, e.target.value);
+                            clearFieldError('instructions');
+                          }}
+                          error={Boolean(fieldErrors.instructions && !step.trim())}
+                          onMouseDown={(e) => e.stopPropagation()}
+                        />
+                        <IconButton
+                          size="small"
+                          color="error"
+                          disabled={instructions.length === 1}
+                          onClick={() => handleRemoveInstruction(idx)}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          sx={{
+                            mt: 1,
+                            flexShrink: 0,
+                            color: instructions.length === 1 ? '#cbd5e1' : '#ef4444',
+                            bgcolor: instructions.length === 1 ? 'transparent' : 'rgba(239, 68, 68, 0.06)',
+                            p: 1,
+                            borderRadius: '8px',
+                            '&:hover': {
+                              bgcolor: 'rgba(239, 68, 68, 0.15)',
+                            },
+                          }}
+                        >
+                          <IconTrash size="18px" />
+                        </IconButton>
+                      </Stack>
+                    </Paper>
                   ))}
                 </Stack>
                 {fieldErrors.instructions && (

@@ -420,7 +420,7 @@ export default async function RecipesPage({ searchParams }) {
                     <div className="recipe-card-page">
                       <div className="recipe-image-wrapper-page">
                         <img
-                          src={recipe.image}
+                          src={recipe.image || ''}
                           alt={recipe.title}
                           className="recipe-image-page"
                           loading="lazy"

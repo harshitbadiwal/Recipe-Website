@@ -1,9 +1,4 @@
-let cron;
-try {
-  cron = require('node-cron');
-} catch (e) {
-  cron = null;
-}
+const cron = require('node-cron');
 const Recipe = require('../models/Recipe.model');
 
 /**
@@ -12,8 +7,6 @@ const Recipe = require('../models/Recipe.model');
 const checkAndPublishScheduledRecipes = async () => {
   try {
     const now = new Date();
-    console.log(`⏰ [Cron Job] Running 5-minute scheduled recipe check at ${now.toLocaleString()} (${now.toISOString()})...`);
-
     const result = await Recipe.updateMany(
       {
         isScheduled: true,
@@ -28,30 +21,27 @@ const checkAndPublishScheduledRecipes = async () => {
     );
 
     if (result.modifiedCount > 0) {
-      console.log(`✅ [Cron Job] Successfully published ${result.modifiedCount} scheduled recipe(s) at ${now.toISOString()}`);
-    } else {
-      console.log(`ℹ️ [Cron Job] Check complete: No due scheduled recipes to publish.`);
+      console.log(`✅ [Cron] Published ${result.modifiedCount} scheduled recipe(s) at ${now.toISOString()}`);
     }
     return result;
   } catch (error) {
-    console.error('❌ [Cron Job Error] Failed to publish scheduled recipes:', error);
-    throw error;
+    console.error('❌ [Cron Error] Failed to publish scheduled recipes:', error.message);
   }
 };
 
 /**
- * Initialize the recurring cron schedule (runs every 5 minutes)
+ * Initialize recurring cron job (runs every minute: * * * * *)
  */
 const initScheduledRecipeCron = () => {
-  if (!cron) {
-    console.warn('⚠️ [Cron Job] node-cron module not available. Cron publisher skipped.');
-    return;
-  }
-  // Schedule to run every 5 minutes: '*/5 * * * *'
+  // Check immediately on startup
+  checkAndPublishScheduledRecipes();
+
+  // Run every minute
   cron.schedule('* * * * *', async () => {
     await checkAndPublishScheduledRecipes();
   });
-  console.log('[Cron Job] Scheduled recipe publisher service initialized (Runs every 5 minutes: */5 * * * *)');
+
+  console.log('⏰ [Cron] Scheduled recipe publisher running every minute (* * * * *)');
 };
 
 module.exports = {

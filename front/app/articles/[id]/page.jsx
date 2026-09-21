@@ -65,7 +65,7 @@ export default async function ArticleDetailPage({ params }) {
   const image =
     article.featuredImage ||
     article.image ||
-    'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=1200&h=630&fit=crop'
+    ''
   const dateFormatted = article.publishedAt
     ? new Date(article.publishedAt).toLocaleDateString('en-US', {
         month: 'long',
@@ -117,9 +117,11 @@ export default async function ArticleDetailPage({ params }) {
       <div className="container">
         <div className="recipe-detail-layout">
           <div className="recipe-detail-main">
-            <div className="recipe-detail-image-wrapper">
-              <img src={image} alt={article.title} className="recipe-detail-image" />
-            </div>
+            {image ? (
+              <div className="recipe-detail-image-wrapper">
+                <img src={image} alt={article.title} className="recipe-detail-image" />
+              </div>
+            ) : null}
 
             <div className="recipe-detail-section" style={{ whiteSpace: 'pre-line', lineHeight: 1.8, fontSize: '16px', color: '#334155' }}>
               {article.content || article.excerpt}

@@ -9,12 +9,20 @@ class RecipeService {
   _getPublicVisibilityFilter() {
     const now = new Date();
     return {
-      isPublished: true,
       $or: [
-        { isScheduled: false },
-        { isScheduled: { $exists: false } },
-        { isScheduled: null },
-        { scheduledAt: { $lte: now } },
+        {
+          isPublished: true,
+          $or: [
+            { isScheduled: false },
+            { isScheduled: { $exists: false } },
+            { isScheduled: null },
+            { scheduledAt: { $lte: now } },
+          ],
+        },
+        {
+          isScheduled: true,
+          scheduledAt: { $lte: now, $ne: null },
+        },
       ],
     };
   }
@@ -135,46 +143,49 @@ class RecipeService {
   }
 
   _resolveScheduling(recipeData, existingRecipe = null) {
-    const isScheduledRaw = recipeData.isScheduled ?? recipeData.is_scheduled ?? recipeData.is_posting ?? (existingRecipe ? existingRecipe.isScheduled : false);
-    const isScheduled = isScheduledRaw === true || isScheduledRaw === 'true' || isScheduledRaw === 1 || isScheduledRaw === '1';
+    const isScheduled =
+      recipeData.isScheduled === true ||
+      recipeData.isScheduled === 'true' ||
+      (existingRecipe && recipeData.isScheduled === undefined ? existingRecipe.isScheduled : false);
 
-    let scheduledDate = recipeData.scheduledDate ?? recipeData.scheduled_date ?? (existingRecipe ? existingRecipe.scheduledDate : '') ?? '';
-    let scheduledTime = recipeData.scheduledTime ?? recipeData.scheduled_time ?? (existingRecipe ? existingRecipe.scheduledTime : '') ?? '';
-    let isPublished;
-    if (recipeData.isPublished !== undefined && recipeData.isPublished !== null) {
-      if (typeof recipeData.isPublished === 'string') {
-        isPublished = recipeData.isPublished === 'true' || recipeData.isPublished === '1';
-      } else {
-        isPublished = Boolean(recipeData.isPublished);
+    let scheduledDate = recipeData.scheduledDate ?? (existingRecipe ? existingRecipe.scheduledDate : '') ?? '';
+    let scheduledTime = recipeData.scheduledTime ?? (existingRecipe ? existingRecipe.scheduledTime : '') ?? '';
+    let scheduledAt = null;
+
+    if (isScheduled) {
+      if (recipeData.scheduledAt) {
+        const parsed = new Date(recipeData.scheduledAt);
+        if (!isNaN(parsed.getTime())) {
+          scheduledAt = parsed;
+        }
       }
+
+      if (!scheduledAt && scheduledDate) {
+        const timeStr = scheduledTime || '00:00';
+        const parsed = new Date(`${scheduledDate}T${timeStr}:00`);
+        if (!isNaN(parsed.getTime())) {
+          scheduledAt = parsed;
+        }
+      }
+    }
+
+    const now = new Date();
+    const isFutureScheduled = Boolean(isScheduled && scheduledAt && scheduledAt > now);
+
+    let isPublished;
+    if (isFutureScheduled) {
+      isPublished = false;
+    } else if (recipeData.isPublished !== undefined && recipeData.isPublished !== null) {
+      isPublished = recipeData.isPublished === true || recipeData.isPublished === 'true';
     } else {
       isPublished = existingRecipe ? existingRecipe.isPublished : true;
     }
 
-    let scheduledAt = null;
-    if (isScheduled && scheduledDate) {
-      const timeStr = scheduledTime || '00:00';
-      scheduledAt = new Date(`${scheduledDate}T${timeStr}:00`);
-      if (isNaN(scheduledAt.getTime())) {
-        scheduledAt = new Date(scheduledDate);
-      }
-
-      if (scheduledAt && scheduledAt > new Date()) {
-        isPublished = false;
-      } else {
-        isPublished = true;
-      }
-    } else {
-      scheduledDate = '';
-      scheduledTime = '';
-      scheduledAt = null;
-    }
-
     return {
-      isScheduled: Boolean(isScheduled && scheduledAt && scheduledAt > new Date()),
-      scheduledDate,
-      scheduledTime,
-      scheduledAt,
+      isScheduled: isFutureScheduled,
+      scheduledDate: isScheduled ? scheduledDate : '',
+      scheduledTime: isScheduled ? scheduledTime : '',
+      scheduledAt: isScheduled ? scheduledAt : null,
       isPublished,
     };
   }
@@ -335,10 +346,14 @@ class RecipeService {
 
     if (isPublicRequest) {
       const now = new Date();
-      if (!recipe.isPublished) {
+      // If recipe was scheduled and its time has arrived, auto-publish inline
+      if (recipe.isScheduled && recipe.scheduledAt && recipe.scheduledAt <= now) {
+        recipe.isPublished = true;
+        recipe.isScheduled = false;
+        await recipe.save().catch(() => {});
+      } else if (!recipe.isPublished) {
         throw new NotFoundError('Recipe not found');
-      }
-      if (recipe.isScheduled && recipe.scheduledAt && recipe.scheduledAt > now) {
+      } else if (recipe.isScheduled && recipe.scheduledAt && recipe.scheduledAt > now) {
         throw new NotFoundError('Recipe not found');
       }
     }

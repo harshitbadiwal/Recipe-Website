@@ -15,26 +15,17 @@ export const authService = {
         localStorage.setItem('recipe_admin_user', JSON.stringify(user));
       }
 
+      // Clear any legacy mock caches
+      try {
+        localStorage.removeItem('recipe_admin_stored_recipes');
+        localStorage.removeItem('recipe_admin_stored_categories');
+        localStorage.removeItem('recipe_admin_stored_blogs');
+        localStorage.removeItem('recipe_admin_stored_users');
+        localStorage.removeItem('recipe_admin_stored_subscribers');
+      } catch (e) {}
+
       return { user, token };
     } catch (error) {
-      // Fallback for offline demo mode
-      if (
-        (email === 'admin@recipe.com' && password === 'admin123') ||
-        (email === 'admin@foodie-admin.io' && password === 'Password@123')
-      ) {
-        const fallbackUser = {
-          id: '6a8dcbc0807151f6bec6a9a6',
-          name: 'Admin User',
-          email,
-          role: 'admin',
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop',
-          bio: 'Head Culinary Master & System Administrator.',
-        };
-        const fallbackToken = 'demo-admin-jwt-token-2026';
-        setAuthToken(fallbackToken);
-        localStorage.setItem('recipe_admin_user', JSON.stringify(fallbackUser));
-        return { user: fallbackUser, token: fallbackToken };
-      }
       throw error;
     }
   },

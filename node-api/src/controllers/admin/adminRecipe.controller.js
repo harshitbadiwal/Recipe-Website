@@ -17,7 +17,7 @@ const parseJsonFields = (data) => {
       }
     }
   });
-  ['isPublished', 'isFeatured', 'isScheduled', 'is_scheduled', 'is_posting'].forEach((field) => {
+  ['isPublished', 'isFeatured', 'isScheduled'].forEach((field) => {
     if (result[field] !== undefined) {
       if (result[field] === 'true' || result[field] === true || result[field] === 1 || result[field] === '1') {
         result[field] = true;

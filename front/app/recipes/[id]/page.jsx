@@ -338,7 +338,11 @@ export default async function RecipeDetailPage({ params }) {
         <div className="recipe-detail-layout">
           <div className="recipe-detail-main">
             <div className="recipe-detail-image-wrapper">
-              <img src={recipe.image} alt={recipe.title} className="recipe-detail-image" />
+              <img
+                src={recipe.image || ''}
+                alt={recipe.title}
+                className="recipe-detail-image"
+              />
               <div className="detail-image-glow"></div>
             </div>
 

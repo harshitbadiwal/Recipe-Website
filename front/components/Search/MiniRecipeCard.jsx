@@ -11,7 +11,7 @@ export default function MiniRecipeCard({ recipe, onSelect }) {
   const slug = recipe.slug || recipe._id || recipe.id
   const recipeId = recipe._id || recipe.id || slug
   const title = recipe.title || 'Untitled Recipe'
-  const image = recipe.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&h=400&fit=crop'
+  const image = recipe.image || ''
   const catName = recipe.categoryName || recipe.category?.name || recipe.category || 'Specialty'
   const subCatName =
     recipe.subCategoryName ||

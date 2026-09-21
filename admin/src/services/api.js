@@ -10,14 +10,24 @@ const api = axios.create({
 export const getAuthToken = () => {
   try {
     const directToken = localStorage.getItem('recipe_admin_token');
-    if (directToken && directToken !== 'null' && directToken !== 'undefined' && !directToken.startsWith('mock-')) {
+    if (
+      directToken &&
+      directToken !== 'null' &&
+      directToken !== 'undefined' &&
+      !directToken.startsWith('mock-') &&
+      !directToken.startsWith('demo-')
+    ) {
       return directToken;
     }
 
     const persisted = localStorage.getItem('recipe-admin-recipe-admin-auth');
     if (persisted) {
       const parsed = JSON.parse(persisted);
-      if (parsed?.token && !parsed.token.startsWith('mock-')) {
+      if (
+        parsed?.token &&
+        !parsed.token.startsWith('mock-') &&
+        !parsed.token.startsWith('demo-')
+      ) {
         return parsed.token;
       }
     }
@@ -29,7 +39,7 @@ export const getAuthToken = () => {
 
 // Helper to set auth token
 export const setAuthToken = (token) => {
-  if (token) {
+  if (token && !token.startsWith('mock-') && !token.startsWith('demo-')) {
     localStorage.setItem('recipe_admin_token', token);
   } else {
     localStorage.removeItem('recipe_admin_token');

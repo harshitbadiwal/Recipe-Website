@@ -45,7 +45,11 @@ export default async function FeaturedRecipes() {
               <Link key={recipe._id || recipe.id || recipeSlug} href={`/recipes/${recipeSlug}`} className="recipe-card-link">
                 <div className="recipe-card" style={{ animationDelay: `${idx * 0.08}s` }}>
                   <div className="recipe-image-wrapper">
-                    <img src={recipe.image} alt={recipe.title} className="recipe-image" loading="lazy" />
+                    {recipe.image && recipe.image.trim() !== '' ? (
+                      <img src={recipe.image} alt={recipe.title} className="recipe-image" loading="lazy" />
+                    ) : (
+                      <div className="recipe-image-placeholder" style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)' }} />
+                    )}
                     <div className="recipe-overlay"></div>
                     
                     {/* Shimmer sweep effect */}
