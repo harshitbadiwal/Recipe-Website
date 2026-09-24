@@ -127,6 +127,11 @@ const recipeSchema = new mongoose.Schema(
       default: false,
       index: true,
     },
+    is_deleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
     scheduledDate: {
       type: String,
       default: '',

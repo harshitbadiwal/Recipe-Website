@@ -9,6 +9,7 @@ const checkAndPublishScheduledRecipes = async () => {
     const now = new Date();
     const result = await Recipe.updateMany(
       {
+        is_deleted: false,
         isScheduled: true,
         scheduledAt: { $lte: now },
       },

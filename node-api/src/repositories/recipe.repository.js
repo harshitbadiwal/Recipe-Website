@@ -7,7 +7,7 @@ class RecipeRepository {
   }
 
   async findBySlug(slug) {
-    return await Recipe.findOne({ slug: slug.toLowerCase() })
+    return await Recipe.findOne({ slug: slug.toLowerCase(), is_deleted: false })
       .populate('category', 'name slug image')
       .populate('categories', 'name slug image')
       .populate('subCategory', 'name slug image parentCategory')
@@ -16,7 +16,7 @@ class RecipeRepository {
   }
 
   async findById(id) {
-    return await Recipe.findById(id)
+    return await Recipe.findOne({ _id: id, is_deleted: false })
       .populate('category', 'name slug image')
       .populate('categories', 'name slug image')
       .populate('subCategory', 'name slug image parentCategory')
@@ -28,8 +28,10 @@ class RecipeRepository {
     const { page = 1, limit = 20, sort = { createdAt: -1 } } = options;
     const skip = (page - 1) * limit;
 
+    const queryFilter = { is_deleted: false, ...filter };
+
     const [recipes, total] = await Promise.all([
-      Recipe.find(filter)
+      Recipe.find(queryFilter)
         .populate('category', 'name slug image')
         .populate('categories', 'name slug image')
         .populate('subCategory', 'name slug image parentCategory')
@@ -38,7 +40,7 @@ class RecipeRepository {
         .skip(skip)
         .limit(limit)
         .exec(),
-      Recipe.countDocuments(filter),
+      Recipe.countDocuments(queryFilter),
     ]);
 
     return { recipes, total };
@@ -49,7 +51,7 @@ class RecipeRepository {
    */
   async aggregatePaginateAdmin(matchFilter = {}, options = {}) {
     const pipeline = [
-      { $match: matchFilter },
+      { $match: { is_deleted: false, ...matchFilter } },
       // Join Category
       {
         $lookup: {
@@ -124,7 +126,7 @@ class RecipeRepository {
   }
 
   async findFeatured(filter = {}, limit = 8) {
-    return await Recipe.find({ isFeatured: true, ...filter })
+    return await Recipe.find({ is_deleted: false, isFeatured: true, ...filter })
       .populate('category', 'name slug image')
       .populate('categories', 'name slug image')
       .sort({ createdAt: -1 })
@@ -133,7 +135,7 @@ class RecipeRepository {
   }
 
   async findLatest(filter = {}, limit = 8) {
-    return await Recipe.find({ ...filter })
+    return await Recipe.find({ is_deleted: false, ...filter })
       .populate('category', 'name slug image')
       .populate('categories', 'name slug image')
       .sort({ createdAt: -1 })
@@ -144,6 +146,7 @@ class RecipeRepository {
   async findRelated(recipe, extraFilter = {}, limit = 4) {
     return await Recipe.find({
       _id: { $ne: recipe._id },
+      is_deleted: false,
       ...extraFilter,
       $or: [
         { categories: { $in: recipe.categories && recipe.categories.length ? recipe.categories : [recipe.category] } },
@@ -160,19 +163,20 @@ class RecipeRepository {
 
   async countByCategory(categoryId) {
     return await Recipe.countDocuments({
+      is_deleted: false,
       $or: [{ category: categoryId }, { categories: categoryId }],
     });
   }
 
   async updateById(id, updateData) {
-    return await Recipe.findByIdAndUpdate(id, updateData, { new: true, runValidators: true })
+    return await Recipe.findOneAndUpdate({ _id: id, is_deleted: false }, updateData, { new: true, runValidators: true })
       .populate('category', 'name slug image')
       .populate('categories', 'name slug image')
       .exec();
   }
 
   async deleteById(id) {
-    return await Recipe.findByIdAndDelete(id).exec();
+    return await Recipe.findOneAndUpdate({ _id: id, is_deleted: false }, { is_deleted: true }, { new: true }).exec();
   }
 }
 

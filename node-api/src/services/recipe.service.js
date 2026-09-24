@@ -9,6 +9,7 @@ class RecipeService {
   _getPublicVisibilityFilter() {
     const now = new Date();
     return {
+      is_deleted: false,
       $or: [
         {
           isPublished: true,
@@ -340,7 +341,7 @@ class RecipeService {
     if (!recipe) {
       recipe = await recipeRepository.findBySlug(slugOrId);
     }
-    if (!recipe) {
+    if (!recipe || recipe.is_deleted) {
       throw new NotFoundError('Recipe not found');
     }
 
@@ -520,7 +521,7 @@ class RecipeService {
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
 
-    const matchFilter = {};
+    const matchFilter = { is_deleted: false };
     if (q) {
       matchFilter.$or = [
         { title: { $regex: q, $options: 'i' } },
